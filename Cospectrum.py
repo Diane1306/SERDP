@@ -39,7 +39,7 @@ def get_cospectra(a, b, n):
     bfft = np.fft.fft(b, n=n) / len(b)
     Co = afft.real * bfft.real + afft.imag * bfft.imag
     # Qu = afft.imag * bfft.real - afft.real * bfft.imag
-    return Co[:int(n/2)]
+    return Co[:int(n / 2)]
 
 
 def get_smoothed_slope(psd):
@@ -52,12 +52,12 @@ def get_smoothed_slope(psd):
     psdsmoothed = np.zeros(smoothlen)
     for si in range(smoothlen):
         psdsmoothed[si] = psd[smoonthloc[si]:smoonthloc[si + 1]].mean()
-    flag = np.where(psdsmoothed>0, 1, 0)
+    flag = np.where(psdsmoothed > 0, 1, 0)
     psdsmoothed = np.where(flag, psdsmoothed, np.nan)
     slope = 0
-    if flag.sum()>2:
+    if flag.sum() > 2:
         flagtemp = ~np.isnan(psdsmoothed[28:-4])
-        if flagtemp.sum()>2:
+        if flagtemp.sum() > 2:
             r = stats.linregress(np.log(freqsmooth[28:-4][flagtemp]), np.log(psdsmoothed[28:-4][flagtemp]))
             slope = r.slope
     else:
@@ -67,8 +67,8 @@ def get_smoothed_slope(psd):
 
 def get_plot(vn, fn, psd_pre, psd_ffp, psd_pos):
     def plot(ax, yr, f, psd, color):
-        ax.loglog(np.where(psd>0, f, np.nan), np.where(psd>0, psd, np.nan), color, lw=1)
-        ax.set_ylim(10**(-8), yr)
+        ax.loglog(np.where(psd > 0, f, np.nan), np.where(psd > 0, psd, np.nan), color, lw=1)
+        ax.set_ylim(10 ** (-8), yr)
         ax.set_xlim(.001, 1.)
 
     yr = 10
