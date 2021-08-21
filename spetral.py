@@ -1,10 +1,11 @@
 import os
 
-import pandas as pd
-from scipy import stats
-import numpy as np
-from astropy.timeseries import LombScargle
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from astropy.timeseries import LombScargle
+from scipy import stats
+
 
 def get_data(dr, height, tower):
     DIR = f'{dr}{height}'
@@ -45,6 +46,7 @@ def calc_slope1(psd):
     r = stats.linregress(np.log(FreqSmooth[28:-4]), np.log(psdsmoonthed[28:-4]))
     return r.slope
 
+
 def calc_slope(psd):
     # slope for averaged psd
     r = stats.linregress(np.log(FreqSmooth[28:-4]), np.log(psd[28:-4]))
@@ -79,10 +81,13 @@ def calc_LombScargleSpectrum(cumsec, flux):
 def get_plot(vn, fn, psd, variance):
     psd = [psd[i] / variance[i] for i in range(9)]
     ylim = .1
+
     def plot(ax, yr, f, psd, color):
         ax.semilogx(f, psd, color, lw=1)
         ax.set_ylim(0, yr)
         ax.set_xlim(.001, 0.5)
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
 
     yr = [ylim for i in range(3)]
     plt.subplots(1, 3, figsize=(9, 12))
@@ -92,28 +97,29 @@ def get_plot(vn, fn, psd, variance):
         plot(ax, yr[hi], freq, psd[1 + hi * 3], 'r')
         plot(ax, yr[hi], freq, psd[2 + hi * 3], 'k')
         if hi == 0:
-            plt.xlabel('Frequency ($s^{-1}$)', fontsize='large')
-        plt.ylabel('norm PSD', fontsize='large')
+            plt.xlabel('Frequency ($s^{-1}$)', fontsize=15)
+        plt.ylabel('norm PSD', fontsize=15)
         plt.legend([f'Pre-FFP ({variance[hi * 3] / len(freq):.2f} $\u2103^{2}m^{2}s^{{-2}})$',
                     f'FFP ({variance[hi * 3 + 1] / len(freq):.2f} $\u2103^{2}m^{2}s^{{-2}})$',
                     f'Post-FFP ({variance[hi * 3 + 2] / len(freq):.2f} $\u2103^{2}m^{2}s^{{-2}})$'], loc='upper right',
-                   frameon=False, fontsize='large')
+                   frameon=False, fontsize=15)
 
         if hi == 0:
-            plt.text(.05, .95, '3m', fontsize='large', fontweight='bold', ha='center', va='center',
+            plt.text(.05, .95, '3m', fontsize=15, fontweight='bold', ha='center', va='center',
                      transform=ax.transAxes)
         elif hi == 1:
-            plt.text(.05, .95, '10m', fontsize='large', fontweight='bold', ha='center', va='center',
+            plt.text(.05, .95, '10m', fontsize=15, fontweight='bold', ha='center', va='center',
                      transform=ax.transAxes)
         elif hi == 2:
-            plt.text(.05, .95, '19m', fontsize='large', fontweight='bold', ha='center', va='center',
+            plt.text(.05, .95, '19m', fontsize=15, fontweight='bold', ha='center', va='center',
                      transform=ax.transAxes)
-    plt.suptitle(f"Normalized Power Spectrum Density of {vn}", fontsize='x-large', fontweight='bold', x=.5, y=.98)
+    plt.suptitle(f"Normalized Power Spectrum Density of {vn}", fontsize=16, fontweight='bold', x=.5, y=.98)
     plt.subplots_adjust(top=.95, bottom=.05, right=.95, left=.1,
                         hspace=.1, wspace=0)
     plt.savefig(f'./plot/paper/spectral/PSD{fn}_Averaged_logx.png', bbox_inches='tight')
     plt.close()
     return
+
 
 if __name__ == "__main__":
     data_dir = '/home/msuclass9/study/Diane/SEDRP/data/PeriodMean/'
