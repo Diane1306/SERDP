@@ -44,7 +44,8 @@ def get_cospectra(a, b, n):
     afft = np.fft.fft(a, n=n) / len(a)
     bfft = np.fft.fft(b, n=n) / len(b)
     Co = afft.real * bfft.real + afft.imag * bfft.imag
-    return Co[:int(n / 2)], Co.sum()
+    # print(Co.sum())
+    return Co[:int(n / 2)], abs(Co.sum())
 
 
 def get_phase(a, b, n):
@@ -52,16 +53,16 @@ def get_phase(a, b, n):
     bfft = np.fft.fft(b, n=n) / len(b)
     Co = afft.real * bfft.real + afft.imag * bfft.imag
     Qu = afft.imag * bfft.real - afft.real * bfft.imag
-    phase = np.arctan2(Qu, Co) * 180. / np.pi + 180.
+    phase = np.arctan2(Qu, Co) * 180. / np.pi
     # print(phase.max(), phase.min())
     return phase[:int(n / 2)]
 
 def get_quadrant(phi):
     phi = np.array(phi)
-    flag1 = np.where(np.logical_or(np.logical_and(phi >= 0, phi < 45), np.logical_and(phi >= 315, phi < 360)), True, False)
+    flag1 = np.where(np.logical_and(phi >= -45, phi < 45), True, False)
     flag2 = np.where(np.logical_and(phi >= 45, phi < 135), True, False)
-    flag3 = np.where(np.logical_and(phi >= 135, phi < 225), True, False)
-    flag4 = np.where(np.logical_and(phi >= 225, phi < 315), True, False)
+    flag3 = np.where(np.logical_or(phi >= 135, phi < -135), True, False)
+    flag4 = np.where(np.logical_and(phi >= -135, phi < -45), True, False)
     return flag1, flag2, flag3, flag4
 
 
@@ -100,7 +101,7 @@ def get_plot(vn, fn, psd_pre, psd_ffp, psd_pos):
         flag = ~np.isnan(np.where(psd > 0, psd, np.nan))
         ax.loglog(np.where(psd > 0, f, np.nan)[flag], np.where(psd > 0, psd, np.nan)[flag], color, lw=1)
         ax.set_ylim(10 ** (-8), yr)
-        ax.set_xlim(.001, 1.)
+        ax.set_xlim(.0004, 1.)
 
     yr = 10
     plt.subplots(1, 3, figsize=(9, 12))
@@ -142,27 +143,36 @@ def get_normalized_cospectraplot(vn, fn, phi, psdtot, method):
         flag = ~np.isnan(psd)
         ax.semilogx(f[flag], psd[flag], color, lw=1, ls=ls)
         ax.set_ylim(yl, yr)
-        ax.set_xlim(.001, 1.)
-        ax.hlines(0, .001, 1., color='cyan', lw=.8)
-        plt.yticks(fontsize=14)
-        plt.xticks(fontsize=14)
+        ax.set_xlim(.0001, 1.)
+        ax.hlines(0, .0001, 1., color='cyan', lw=.8)
+
 
     color = ['lime', 'r', 'k']
     linestyles = ['-.', ':', '-', '--']
     yl = [-.02, -.01, -.1]
     yr = [.06, .1, .1]
-    plt.subplots(3, 3, figsize=(16, 12))
+    step = [0.01, 0.02, 0.04]
+    plt.subplots(3, 3, figsize=(18, 12))
     for hi in range(3):
         for pi in range(3):
             ax = plt.subplot(3, 3, hi * 3 + pi + 1)
             psdsmoothed = get_smoonthed_cospectra_in_phase(phi[hi][pi], psdtot[hi][pi])
             for fi in range(4):
+                if np.isnan(psdsmoothed[fi][0]):
+                    psdsmoothed[fi][0] = 0
                 plot(ax, FreqSmooth, psdsmoothed[fi], color[pi], linestyles[fi], yl[hi], yr[hi])
-            if hi == 0:
+            if hi == 2:
                 plt.xlabel('Frequency ($s^{-1}$)', fontsize=15)
             if pi == 0:
                 plt.ylabel("$Co_{w't'}(f)  /  |\overline{w^{'}t^{'}}|$", fontsize=15)
-
+            if pi == 0:
+                plt.yticks(np.arange(yl[hi], yr[hi]+step[hi], step[hi]), fontsize=14)
+            else:
+                plt.yticks(np.arange(yl[hi], yr[hi]+step[hi], step[hi]), [])
+            if hi == 2:
+                plt.xticks(fontsize=14)
+            else:
+                plt.xticks([])
 
         if hi == 2:
             plt.text(.05, .95, '3m', fontsize=15, fontweight='bold', ha='center', va='center',
@@ -187,7 +197,7 @@ def get_normalized_cospectraplot(vn, fn, phi, psdtot, method):
             plt.legend(loc='upper right', frameon=False, fontsize=15)
     plt.suptitle(f"Cospectrum of {vn}", fontsize=16, fontweight='bold', x=.5, y=.98)
     plt.subplots_adjust(top=.95, bottom=.05, right=.95, left=.1,
-                        hspace=.1, wspace=0)
+                        hspace=.1, wspace=.08)
     if method:
         plt.savefig(f'./plot/paper/spectral/EastTower_NormCoSpectrum{fn}_logx_smoonthed.png',
                     bbox_inches='tight')
@@ -230,9 +240,9 @@ if __name__ == "__main__":
         for i in range(9):
             wwe, tte = get_event(fn[ei], ww[i], tt[i])
             Cotemp, Covartemp = get_cospectra(wwe, tte, n)
-            # Co.append(Cotemp)
-            Co.append(Cotemp / Covartemp)
-            phi.append(get_phase(wwe, tte, n))
-        get_normalized_cospectraplot(vn[ei], fn[ei], [phi[0:3], phi[3:6], phi[6:9]], [Co[0:3], Co[3:6], Co[6:9]],
-                                     method)
-        # get_plot(vn[ei], fn[ei], Co[0:3], Co[3:6], Co[6:9])
+            Co.append(Cotemp)
+            # Co.append(Cotemp / Covartemp)
+            # phi.append(get_phase(wwe, tte, n))
+        # get_normalized_cospectraplot(vn[ei], fn[ei], [phi[0:3], phi[3:6], phi[6:9]], [Co[0:3], Co[3:6], Co[6:9]],
+        #                              method)
+        get_plot(vn[ei], fn[ei], Co[0:3], Co[3:6], Co[6:9])
