@@ -63,7 +63,7 @@ def get_plot(tmean, wmean, wtmean, data):
     step = 2, 4, 2
 
     legend = ['19m AGL', '10m AGL', 'Fire Starts', 'Fire Ends']
-    fig, axs = plt.subplots(3, 1, figsize=(9, 6))
+    fig, axs = plt.subplots(3, 1, figsize=(10, 6))
     for vi in range(3):
         ax = plt.subplot(3, 1, vi + 1)
         ax.set_ylim(yl[vi], yr[vi])
@@ -88,18 +88,24 @@ def get_plot(tmean, wmean, wtmean, data):
             plt.scatter(np.arange(xpre, xpre + xffp), wwffp, .5, color[hi], alpha=1., label='_nolegend_')
             plt.scatter(np.arange(xpre + xffp, xpre + xffp + xpos), wwpos, .5, color[hi], alpha=1., label='_nolegend_')
 
-        plt.text(.05, .1, meantext[vi], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
-        plt.text(.15, .1, f'{datamean[vi][1][0]:.3f}', fontsize=15, c=color[1], ha='center', va='center',
+        plt.text(.05, .1, meantext[vi], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
+        # plt.text(.12, .1, f'{datamean[vi][1][0]:.3f}', fontsize=12, c=color[1], ha='center', va='center',
+        #          transform=ax.transAxes)
+        plt.text(.22, .1, f'{datamean[vi][1][0]:.3f}', fontsize=11, c=color[1], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.27, .1, f'{datamean[vi][2][0]:.3f}', fontsize=15, c=color[2], ha='center', va='center',
+        plt.text(.32, .1, f'{datamean[vi][2][0]:.3f}', fontsize=11, c=color[2], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.51, .1, f'{datamean[vi][1][1]:.3f}', fontsize=15, c=color[1], ha='center', va='center',
+        # plt.text(.42, .1, f'{datamean[vi][1][1]:.3f}', fontsize=12, c=color[1], ha='center', va='center',
+        #          transform=ax.transAxes)
+        plt.text(.51, .1, f'{datamean[vi][1][1]:.3f}', fontsize=11, c=color[1], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.62, .1, f'{datamean[vi][2][1]:.3f}', fontsize=15, c=color[2], ha='center', va='center',
+        plt.text(.58, .1, f'{datamean[vi][2][1]:.3f}', fontsize=11, c=color[2], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.82, .1, f'{datamean[vi][1][2]:.3f}', fontsize=15, c=color[1], ha='center', va='center',
+        # plt.text(.74, .1, f'{datamean[vi][1][2]:.3f}', fontsize=12, c=color[1], ha='center', va='center',
+        #          transform=ax.transAxes)
+        plt.text(.84, .1, f'{datamean[vi][1][2]:.3f}', fontsize=11, c=color[1], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.94, .1, f'{datamean[vi][2][2]:.3f}', fontsize=15, c=color[2], ha='center', va='center',
+        plt.text(.94, .1, f'{datamean[vi][2][2]:.3f}', fontsize=11, c=color[2], ha='center', va='center',
                  transform=ax.transAxes)
 
         plt.vlines(xpre, yl[vi], yr[vi], 'magenta', linestyle='--', lw=1)
@@ -107,12 +113,12 @@ def get_plot(tmean, wmean, wtmean, data):
         plt.hlines(0, 0, xpre + xffp + xpos, 'grey', lw=1)
         plt.xticks(np.arange(0, xpre + xffp + xpos, 1000), [])
         if vi == 2:
-            plt.text(0, -.08, start[ti], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
-            plt.text(.41, -.08, ffps[ti], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
-            plt.text(.62, -.08, ffpe[ti], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
-            plt.text(1, -.08, end[ti], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
+            plt.text(0, -.08, start[ti], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
+            plt.text(.41, -.08, ffps[ti], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
+            plt.text(.62, -.08, ffpe[ti], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
+            plt.text(1, -.08, end[ti], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
         if vi == 0:
-            plt.legend(legend, fontsize='large', markerscale=3., ncol=2, frameon=False, loc='upper right')
+            plt.legend(legend, fontsize=10, markerscale=3., ncol=2, frameon=False, loc='upper right')
 
     plt.suptitle(f"Control Tower", fontsize=15, fontweight='bold', x=.5, y=.93)
     plt.savefig(f'../../2020_SERDP_Diane/plot/MixedMean/{tower[ti]}/Control_TimeSeries_mixedmean.png', bbox_inches='tight')
@@ -172,11 +178,11 @@ def get_fluxplot(tmean, wmean, wtmean, data):
 
     ylabel = ["t' (\u2103)", "w' (m/s)", "w't' (m\u2103/s)"]
     yl = -5, -8, -100
-    yr = 95, 8, 300
+    yr = 100, 8, 300
     step = 20, 4, 80
 
     legend = ['19m AGL', '10m AGL', '3m AGL', 'Fire Starts', 'Fire Ends']
-    fig, axs = plt.subplots(3, 1, figsize=(9, 6))
+    fig, axs = plt.subplots(3, 1, figsize=(10, 6))
     for vi in range(3):
         ax = plt.subplot(3, 1, vi + 1)
         ax.set_ylim(yl[vi], yr[vi])
@@ -202,27 +208,27 @@ def get_fluxplot(tmean, wmean, wtmean, data):
             plt.scatter(np.arange(xpre + xffp, xpre + xffp + xpos), wwpos, .5, color[hi], alpha=1., label='_nolegend_')
 
         if vi == 0:
-            ht = .5
+            ht = .9
         else:
             ht = .1
-        plt.text(.05, ht, meantext[vi], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
-        plt.text(.08, ht, f'{datamean[vi][0][0]:.3f}', fontsize=15, c=color[0], ha='center', va='center',
+        plt.text(.05, ht, meantext[vi], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
+        plt.text(.12, ht, f'{datamean[vi][0][0]:.3f}', fontsize=11, c=color[0], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.15, ht, f'{datamean[vi][1][0]:.3f}', fontsize=15, c=color[1], ha='center', va='center',
+        plt.text(.22, ht, f'{datamean[vi][1][0]:.3f}', fontsize=11, c=color[1], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.27, ht, f'{datamean[vi][2][0]:.3f}', fontsize=15, c=color[2], ha='center', va='center',
+        plt.text(.32, ht, f'{datamean[vi][2][0]:.3f}', fontsize=11, c=color[2], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.43, ht, f'{datamean[vi][0][1]:.3f}', fontsize=15, c=color[0], ha='center', va='center',
+        plt.text(.435, ht, f'{datamean[vi][0][1]:.3f}', fontsize=11, c=color[0], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.50, ht, f'{datamean[vi][1][1]:.3f}', fontsize=15, c=color[1], ha='center', va='center',
+        plt.text(.51, ht, f'{datamean[vi][1][1]:.3f}', fontsize=11, c=color[1], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.57, ht, f'{datamean[vi][2][1]:.3f}', fontsize=15, c=color[2], ha='center', va='center',
+        plt.text(.58, ht, f'{datamean[vi][2][1]:.3f}', fontsize=11, c=color[2], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.75, ht, f'{datamean[vi][0][2]:.3f}', fontsize=15, c=color[0], ha='center', va='center',
+        plt.text(.74, ht, f'{datamean[vi][0][2]:.3f}', fontsize=11, c=color[0], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.82, ht, f'{datamean[vi][1][2]:.3f}', fontsize=15, c=color[1], ha='center', va='center',
+        plt.text(.84, ht, f'{datamean[vi][1][2]:.3f}', fontsize=11, c=color[1], ha='center', va='center',
                  transform=ax.transAxes)
-        plt.text(.9, ht, f'{datamean[vi][2][2]:.3f}', fontsize=15, c=color[2], ha='center', va='center',
+        plt.text(.94, ht, f'{datamean[vi][2][2]:.3f}', fontsize=11, c=color[2], ha='center', va='center',
                  transform=ax.transAxes)
 
         plt.vlines(xpre, yl[vi], yr[vi], 'magenta', linestyle='--', lw=1)
@@ -230,23 +236,23 @@ def get_fluxplot(tmean, wmean, wtmean, data):
         plt.hlines(0, 0, xpre + xffp + xpos, 'grey', lw=1)
         plt.xticks(np.arange(0, xpre + xffp + xpos, 1000), [])
         if vi == 2:
-            plt.text(0, -.08, start[ti], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
+            plt.text(0, -.08, start[ti], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
             #         plt.text(.21, -.08, mid1, fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
-            plt.text(.41, -.08, ffps[ti], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
-            plt.text(.62, -.08, ffpe[ti], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
+            plt.text(.41, -.08, ffps[ti], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
+            plt.text(.62, -.08, ffpe[ti], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
             #         plt.text(.82, -.08, mid2, fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
-            plt.text(1, -.08, end[ti], fontsize=15, c='k', ha='center', va='center', transform=ax.transAxes)
-        if vi == 0:
-            plt.legend(legend, fontsize=14, markerscale=3., ncol=2, frameon=False)
+            plt.text(1, -.08, end[ti], fontsize=13, c='k', ha='center', va='center', transform=ax.transAxes)
+        if vi == 2:
+            plt.legend(legend, fontsize=10, markerscale=3., ncol=2, frameon=False)
 
-    plt.suptitle(f"{tower[ti]} Tower", fontsize=15, fontweight='bold', x=.5, y=.9)
+    plt.suptitle(f"{tower[ti]} Tower", fontsize=15, fontweight='bold', x=.5, y=.93)
     plt.savefig(f'../../2020_SERDP_Diane/plot/MixedMean/{tower[ti]}/{tower[ti]}_TimeSeries_mixedmean.png', bbox_inches='tight')
     plt.close()
 
 
 if __name__ == "__main__":
     tower = ['East', 'Flux', 'North', 'South_Mobile', 'West']
-    meantext = ["$\overline{t}$ = ", "$\overline{w}$ = ", "$\overline{w^{'}t^{'}}$ = "]
+    meantext = ["$\overline{t}$ = ", "$\overline{w}$ = ", "$\overline{w^{'}t^{'}}$= "]
 
     cstart = [543231, 535431, 564231, 517431, 535431]
     cffps = [561231, 553431, 582231, 535431, 553431]
