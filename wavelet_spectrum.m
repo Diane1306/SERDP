@@ -40,16 +40,27 @@ end
 %%
 function [cospectrum, phase, freq] = cross_wavelet(a, b, scales)
     fc = centfrq('morl');
+    Cg = 0.776; % Torrence et al., 1998
     cwtstruct_temp = cwtft(a, 'wavelet', 'morl', 'scales', scales);
     Wa = cwtstruct_temp.cfs;
     cwtstruct_temp = cwtft(b, 'wavelet', 'morl', 'scales', scales);
     Wb = cwtstruct_temp.cfs;
     freq = cwtstruct_temp.frequencies;
 
-    cospectrum = squeeze(mean(real(Wa) .* real(Wb) + imag(Wa) .* imag(Wb), 2)) ./ (fc);
-    quadrature = squeeze(imag(Wa) .* real(Wb) - real(Wa) .* imag(Wb)) ./ (fc);
-    phase = atan2(quadrature, cospectrum);
+    cospectrum = squeeze(mean(real(Wa) .* real(Wb) + imag(Wa) .* imag(Wb), 2)) ./ (fc.*Cg);
+    quadrature = squeeze(mean(imag(Wa) .* real(Wb) - real(Wa) .* imag(Wb), 2)) ./ (fc.*Cg);
+    phase = atan2(quadrature, cospectrum).*(180/pi());
 end
+
+%%
+function [flag1, flag2, flag3, flag4] = get_quadrant(phi)
+    % Logical flags for each quadrant
+    flag1 = (phi >= -45) & (phi < 45);
+    flag2 = (phi >= 45) & (phi < 135);
+    flag3 = (phi >= 135) | (phi < -135);
+    flag4 = (phi >= -135) & (phi < -45);
+end
+
 %% calculate wavelet power spectrum (energy density)
 Cg = pi;
 fc = 0.251;
@@ -85,7 +96,6 @@ legend('Pre-FFP', 'FFP', 'Post-FFP', '-2/3', 'box', 'off')
 
 %% Cospectrum
 cospectrum = cell(3, 1);
-quadrature = cell(3, 1);
 cospectrum_freq = cell(3, 1);
 phase = cell(3, 1);
 for di=1:3
@@ -99,9 +109,9 @@ end
 
 %%
 figure('Position', [300 200 800 600])
-colors = ['b', 'r', 'k'];
+colors = {'b', 'r', 'k'};
 for di=1:3
-    loglog(cospectrum_freq{di}, cospectrum_freq{di}.*cospectrum{di}', colors(di), 'LineWidth',2)
+    loglog(cospectrum_freq{di}, cospectrum_freq{di}.*cospectrum{di}', colors{di}, 'LineWidth',2)
     hold on
 end
 loglog(cospectrum_freq{1}, cospectrum_freq{1}.^(-4/3) ./ 10^3, 'm-.', 'LineWidth',2)
@@ -111,3 +121,24 @@ xlabel('Frequency [Hz]')
 ylabel('fE(f) [m s^{-1} \circC]')
 title('wt Wavelet Co-secptrum @20m of East Tower')
 legend('Pre-FFP', 'FFP', 'Post-FFP', '-4/3', 'box', 'off')
+
+%%
+flags = cell(3, 4);
+for di=1:3
+    [flags{di, 1}, flags{di, 2}, flags{di, 3}, flags{di, 4}] = get_quadrant(phase{di});
+end
+
+figure('Position', [300 200 800 600])
+linestyles = {'-o', ':*', '-.d', '--^'};
+di=1;
+for fi=1:4
+    x = cospectrum_freq{di};
+    y = cospectrum_freq{di}.*cospectrum{di}';
+    semilogx(x(flags{di, fi}), y(flags{di, fi}),linestyles{fi}, 'Color',colors{di},'LineWidth',2)
+    hold on
+end
+yline(0, 'Color','k', 'LineStyle','--', 'HandleVisibility','off')
+xlabel('Frequency [Hz]')
+ylabel('fE(f) [m s^{-1} \circC]')
+title('wt Wavelet Co-secptrum @20m of East Tower')
+legend('0', '90', '180', '270', 'box', 'off')
