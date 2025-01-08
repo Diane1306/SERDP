@@ -5,9 +5,9 @@ clear
 data_dir = '/Users/diane_wt/Downloads/work/PreMean/'; % 2019_East_Tower-fft_20mAGL
 towers = {'East', 'West', 'Flux', 'North', 'South_Mobile'};
 % Call the function
-% [ww20, tt20, CumSec20] = get_data(data_dir, towers, '20m');
+[ww20, tt20, CumSec20] = get_data(data_dir, towers, '20m');
 [ww10, tt10, CumSec10] = get_data(data_dir, {towers{1:4}}, '10m');
-% [ww3, tt3, CumSec3] = get_data(data_dir, towers, '3m');
+[ww3, tt3, CumSec3] = get_data(data_dir, towers, '3m');
 
 % Function Definition (for example, if not already implemented)
 function [ww, tt, CumSec] = get_data(dr, towers, height)
@@ -35,36 +35,35 @@ end
 
 %%
 function [cospectrum, freq] = cross_wavelet(a, b, scales)
-    fc = centfrq('morl');
     Cg = 0.776; % Torrence et al., 1998
     cwtstruct_temp = cwtft(a, 'wavelet', 'morl', 'scales', scales);
     Wa = cwtstruct_temp.cfs;
     cwtstruct_temp = cwtft(b, 'wavelet', 'morl', 'scales', scales);
     Wb = cwtstruct_temp.cfs;
     freq = cwtstruct_temp.frequencies';
-    
+    fc = freq(1).*scales(1);
+
     covar = mean((a-mean(a)).*(b-mean(b)));
     cospectrum = squeeze(mean(real(Wa) .* real(Wb) + imag(Wa) .* imag(Wb), 2)) ./ (fc.*Cg.*covar);
 end
 
 
 %% calculate wavelet power spectrum (energy density)
+dt = 0.1;
+npoints = 18000;
+lenscales = floor(log2(npoints));
+s0 = 2*dt; % following Torrence et al. 1998
+scales = s0 .* 2.^(-3:lenscales);
 E_f_T_m = nan(length(scales), 3, 3);
 E_f_w_m = nan(length(scales), 3, 3);
 cospectrum_m = nan(length(scales), 3, 3);
-[E_f_T_m(:, :, 3), E_f_w_m(:, :, 3), frequencies, cospectrum_m(:, :, 3), cospectrum_freq] = get_power(ww3, tt3, 5);
-[E_f_T_m(:, :, 2), E_f_w_m(:, :, 2), frequencies, cospectrum_m(:, :, 2), cospectrum_freq] = get_power(ww10, tt10, 4);
-[E_f_T_m(:, :, 1), E_f_w_m(:, :, 1), frequencies, cospectrum_m(:, :, 1), cospectrum_freq] = get_power(ww20, tt20, 5);
+[E_f_T_m(:, :, 3), E_f_w_m(:, :, 3), frequencies, cospectrum_m(:, :, 3), cospectrum_freq] = get_power(ww3, tt3, 5, scales);
+[E_f_T_m(:, :, 2), E_f_w_m(:, :, 2), frequencies, cospectrum_m(:, :, 2), cospectrum_freq] = get_power(ww10, tt10, 4, scales);
+[E_f_T_m(:, :, 1), E_f_w_m(:, :, 1), frequencies, cospectrum_m(:, :, 1), cospectrum_freq] = get_power(ww20, tt20, 5, scales);
 
-function [E_f_T_m, E_f_w_m, frequencies, cospectrum_m, cospectrum_freq] = get_power(ww, tt, lentowers)
+function [E_f_T_m, E_f_w_m, frequencies, cospectrum_m, cospectrum_freq] = get_power(ww, tt, lentowers, scales)
     Cg = pi;
     fc = 0.251;
-    dt = 0.1;
-    npoints = 18000;
-    lenscales = floor(log2(npoints));
-    s0 = 2*dt; % following Torrence et al. 1998
-    scales = s0 .* 2.^(-3:lenscales);
-    
     E_f_T = nan(length(scales), 3, lentowers);
     E_f_w = nan(length(scales), 3, lentowers);
     for ti=1:lentowers
@@ -73,12 +72,14 @@ function [E_f_T_m, E_f_w_m, frequencies, cospectrum_m, cospectrum_freq] = get_po
             cwtstruct_temp = cwtft(df, 'wavelet', 'mexh', 'scales', scales);
             W_ab_T = cwtstruct_temp.cfs';
             frequencies = cwtstruct_temp.frequencies';
-            E_f_T(:, di, ti) = squeeze(mean(abs(W_ab_T).^2, 1)) ./ (Cg.*fc.*var(df)); % wavelet energy per unit time normalized by variance
+            var_df = mean((df-mean(df)).^2);
+            E_f_T(:, di, ti) = squeeze(mean(abs(W_ab_T).^2, 1)) ./ (Cg.*fc.*var_df); % frequency-dependent wavelet energy 
             
             df = rmmissing(ww{di, ti});
             cwtstruct_temp = cwtft(df, 'wavelet', 'mexh', 'scales', scales);
             W_ab_w = cwtstruct_temp.cfs';
-            E_f_w(:, di, ti) = squeeze(mean(abs(W_ab_w).^2, 1)) ./ (Cg.*fc.*var(df)); % wavelet energy per unit time normalized by variance 
+            var_df = mean((df-mean(df)).^2);
+            E_f_w(:, di, ti) = squeeze(mean(abs(W_ab_w).^2, 1)) ./ (Cg.*fc.*var_df); % frequency-dependent wavelet energy
         end
     end
     E_f_T_m = mean(E_f_T, 3);
@@ -96,16 +97,24 @@ end
 
 
 %%
+% Set font properties
+set(0, 'DefaultAxesFontWeight', 'bold');
+set(0, 'DefaultAxesFontSize', 20);
+
 vars = {E_f_T_m, E_f_w_m, cospectrum_m};
-ylabels = {"f\timesE_{T'}(f) / T'^2", "f\timesE_{w'}(f) / w'^2", "f\timesCO_{w'T'}(f) / w'T'"};
+ylabels = {"f\timesP_{T'}(f) / T'^2 ", "f\timesP_{w'}(f) / w'^2 ", "f\timesCO_{w'T'}(f) / w'T' "};
 heights = {'19 m', '10 m', '3 m'};
 colors = ['b', 'r', 'k'];
 figure('Position', [200 100 1200 800])
 for hi=1:3
     for vi=1:3
-        subaxis(3, 3, (hi-1)*3+vi, 'sh', 0.032, 'sv', 0.016, 'padding', 0, 'ML', 0.08, 'MB', 0.08, 'MR', 0.07, 'MT', 0.05);
+        subaxis(3, 3, (hi-1)*3+vi, 'sh', 0.032, 'sv', 0.02, 'padding', 0, 'ML', 0.08, 'MB', 0.08, 'MR', 0.07, 'MT', 0.05);
         for di=1:3
-            loglog(frequencies, frequencies.*vars{vi}(:, di, hi), 'marker', 'o', 'Color', colors(di), 'LineWidth',2)
+            if vi<3
+                loglog(frequencies, frequencies.*vars{vi}(:, di, hi), 'marker', 'o', 'Color', colors(di), 'LineWidth',2)
+            else
+                loglog(cospectrum_freq, cospectrum_freq.*vars{vi}(:, di, hi), 'marker', 'o', 'Color', colors(di), 'LineWidth',2)
+            end
             hold on
         end
         if vi<3
@@ -120,15 +129,10 @@ for hi=1:3
             loglog(cospectrum_freq, nan*cospectrum_freq.^(-4/3) ./ 10^4, 'c-.', 'LineWidth',2)
         end
         grid on
-        ylim([10^(-5) 10])
         if hi==1 && vi==2
             legend('Pre-FFP', 'FFP', 'Post-FFP', '-2/3', '-4/3', 'box', 'off', 'Orientation','horizontal')
         end
-        if vi<3
-            xlim([0.0001 2])
-        else
-            xlim([0.0001 0.4])
-        end
+        xlim([0.0001 2])
         ylim([10^(-4) 1])
 
         if vi>1
@@ -148,7 +152,7 @@ for hi=1:3
         if vi==3
             xL=xlim;
             yL=ylim;
-            text(xL(2)*5, yL(2)/100, heights{hi},'HorizontalAlignment','right','VerticalAlignment','middle', "FontSize",24,"FontWeight","bold")
+            text(xL(2)*6, yL(2)/100, heights{hi},'HorizontalAlignment','right','VerticalAlignment','middle', "FontSize",24,"FontWeight","bold")
         end
 
     end
