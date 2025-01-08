@@ -1,14 +1,17 @@
+clc
+clear
+%%
 % Main script
-% data_dir = '/home/msuclass9/study/Diane/SEDRP/data/PeriodMean/';  % Define the data directory
-data_dir = '/Users/diane_wt/Downloads/2019_East_Tower-fft_20mAGL.xlsx';
-
+data_dir = '/Users/diane_wt/Downloads/work/PreMean/'; % 2019_East_Tower-fft_20mAGL
+heights = ['3m', '10m', '20m'];
+towers = ['East', 'West', 'Flux', 'South_Mobile', 'North'];
 % Call the function
-[ww20, tt20, Sweep20, Ejection20, Outward20, Inward20, CumSec20] = get_data(data_dir);
+[ww20, tt20, CumSec20] = get_data(data_dir);
 
 % Function Definition (for example, if not already implemented)
-function [ww, tt, Sweep, Ejection, Outward, Inward, CumSec] = get_data(dr)
+function [ww, tt, CumSec] = get_data(dr)
      % Initialize output cell arrays
-    ww = {};
+    ww = cell{3, 4};
     tt = {};
     Sweep = {};
     Ejection = {};
@@ -29,10 +32,6 @@ function [ww, tt, Sweep, Ejection, Outward, Inward, CumSec] = get_data(dr)
         % Extract and store the relevant columns
         ww{end+1} = df{di}.("w' (m/s)");
         tt{end+1} = df{di}.("t' (C)");
-        Sweep{end+1} = df{di}.("w't' (Sweep)");
-        Ejection{end+1} = df{di}.("w't' (Ejection)");
-        Outward{end+1} = df{di}.("w't' (Out Int)");
-        Inward{end+1} = df{di}.("w't' (In Int)");
         CumSec{end+1} = df{di}.("Cum. Sec.");  % Assuming the first column contains this data
     end
 end
@@ -67,7 +66,8 @@ fc = 0.251;
 dt = 0.1;
 npoints = 18000;
 lenscales = floor(log2(18000));
-scales = 2.^(-3:lenscales);
+s0 = 2*dt; % following Torrence et al. 1998
+scales = s0 .* 2.^(-3:lenscales);
 
 E_f_T = nan(length(scales), 3);
 for di = 1:3
