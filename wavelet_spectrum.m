@@ -3,10 +3,10 @@ clear
 %%
 % Main script
 data_dir = '/Users/diane_wt/Downloads/work/PreMean/'; % 2019_East_Tower-fft_20mAGL
-towers = {'South_Mobile', 'West', 'Flux', 'East', 'North', };
+towers = {'Flux', 'North', 'West', 'East', 'South_Mobile'};
 % Call the function
 [ww20, tt20, CumSec20] = get_data(data_dir, towers, '20m');
-[ww10, tt10, CumSec10] = get_data(data_dir, {towers{2:5}}, '10m');
+[ww10, tt10, CumSec10] = get_data(data_dir, towers(1:4), '10m');
 [ww3, tt3, CumSec3] = get_data(data_dir, towers, '3m');
 
 % Function Definition (for example, if not already implemented)
