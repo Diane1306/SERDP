@@ -55,15 +55,31 @@ function [T, U, V, W, wt, uw, vw, ww, w, tke, usw, Usw, CumSec] = get_data(dr, t
         clear df
     end
 end
+
+%% create standard CumSec
+CumSec_n = CumSec20;
+CumSec_n{3, 5} = CumSec3{3, 5};
+time_temp = CumSec20{2, 5}(1):0.1:CumSec20{2, 5}(1)+(12000-1)*0.1;
+CumSec_n{2, 5} = time_temp';
+
 %% dissipation rate
 height = [3, 10, 19];
-di=1;
-ti=1;
 samplingfreq = 10;
-buoy = calc_1min_buoy(T10{di,ti}, wt10{di,ti}, samplingfreq, ~isnan(CumSec10{di,ti}));
-shear = calc_1min_shear(uw10{di,ti}, vw10{di,ti}, ww10{di,ti}, U3{di,ti}, U10{di,ti}, U20{di,ti}, V3{di,ti}, V10{di,ti}, V20{di,ti}, W3{di,ti}, W10{di,ti}, W20{di,ti}, height, samplingfreq, ~isnan(CumSec10{di,ti}));
-transport = calc_1min_transport(W3{di,ti}, W10{di,ti}, W20{di,ti}, tke3{di,ti}, tke10{di,ti}, tke20{di,ti}, height, samplingfreq, ~isnan(CumSec10{di,ti}));
-dissipation_rate = calc_1min_disp(usw10{di,ti}, Usw10{di,ti}, samplingfreq, ~isnan(CumSec10{di,ti}));
+buoy = cell(size(CumSec10));
+shear = cell(size(CumSec10));
+transport = cell(size(CumSec10));
+dissipation_rate = cell(size(CumSec10));
+time_ave = cell(size(CumSec10));
+
+for di=1:3
+    for ti=1:4
+        buoy{di, ti} = calc_1min_buoy(T10{di,ti}, wt10{di,ti}, samplingfreq, CumSec10{di, ti}, CumSec_n{di, ti});
+        shear{di, ti} = calc_1min_shear(uw10{di,ti}, vw10{di,ti}, ww10{di,ti}, U3{di,ti}, U10{di,ti}, U20{di,ti}, V3{di,ti}, V10{di,ti}, V20{di,ti}, W3{di,ti}, W10{di,ti}, W20{di,ti}, height, samplingfreq, CumSec10{di, ti}, CumSec_n{di, ti});
+        transport{di, ti} = calc_1min_transport(w3{di,ti}, w10{di,ti}, w20{di,ti}, tke3{di,ti}, tke10{di,ti}, tke20{di,ti}, height, samplingfreq, CumSec3{di, ti}, CumSec10{di, ti}, CumSec20{di, ti}, CumSec_n{di, ti});
+        dissipation_rate{di, ti} = calc_1min_disp(usw10{di,ti}, Usw10{di,ti}, samplingfreq, CumSec10{di, ti}, CumSec_n{di, ti});
+        time_ave{di, ti} = calc_1min_ave(CumSec_n{di, ti}, samplingfreq);
+    end
+end
 
 function term = calc_1min_ave(term_temp, samplingfreq)
     len_term = ceil(length(term_temp)/(samplingfreq*60));
@@ -74,20 +90,32 @@ function term = calc_1min_ave(term_temp, samplingfreq)
     term(len_term) = mean(term_temp((len_term-1)*samplingfreq*60+1:end), "omitmissing");
 end
 
-function buoy = calc_1min_buoy(Tm, wt, samplingfreq, flag)
-    % flag is indicated by ~isnan(CumSec)
-    wt = wt(flag);
+function buoy = calc_1min_buoy(Tm2, wt2, samplingfreq, time2, timen)
+    if length(time2)~=length(timen)
+        if length(time2)>length(timen)
+            wt2 = wt2(1:length(timen));
+        else
+            wt2 = interp1(time2, wt2, timen, 'linear', 'extrap');
+        end
+    end
     g = 9.81;  %m/s^2 gravity
-    buoy_temp = g ./ Tm .* wt;
+    buoy_temp = g ./ (Tm2 + 273.15) .* wt2;
 
     buoy = calc_1min_ave(buoy_temp, samplingfreq);
 end
 
-function shear = calc_1min_shear(uw, vw, ww, u1, u2, u3, v1, v2, v3, w1, w2, w3, height, samplingfreq, flag)
-    uw = uw(flag);
-    vw = vw(flag);
-    ww = ww(flag);
-    
+function shear = calc_1min_shear(uw2, vw2, ww2, u1, u2, u3, v1, v2, v3, w1, w2, w3, height, samplingfreq, time2, timen)
+    if length(time2)~=length(timen) 
+        if length(time2)>length(timen)
+            uw2 = uw2(1:length(timen));
+            vw2 = vw2(1:length(timen));
+            ww2 = ww2(1:length(timen));
+        else
+            uw2 = interp1(time2, uw2, timen, 'linear', 'extrap');
+            vw2 = interp1(time2, vw2, timen, 'linear', 'extrap');
+            ww2 = interp1(time2, ww2, timen, 'linear', 'extrap');
+        end
+    end
     % Weighted Finite Difference Method
     weight1 = (height(3)-height(2)) / (height(3)-height(1));
     weight3 = (height(2)-height(1)) / (height(3)-height(1));
@@ -95,18 +123,38 @@ function shear = calc_1min_shear(uw, vw, ww, u1, u2, u3, v1, v2, v3, w1, w2, w3,
     grad_V = weight1 .* (v2-v1)./(height(2)-height(1)) + weight3 .* (v3-v2)./(height(3)-height(2));
     grad_W = weight1 .* (w2-w1)./(height(2)-height(1)) + weight3 .* (w3-w2)./(height(3)-height(2));
 
-    shear_temp = -uw .* grad_U -vw .* grad_V -ww .* grad_W;
+    shear_temp = -uw2 .* grad_U -vw2 .* grad_V -ww2 .* grad_W;
     shear = calc_1min_ave(shear_temp, samplingfreq);
 end
 
-function transport = calc_1min_transport(w1, w2, w3, tke1, tke2, tke3, height, samplingfreq, flag)
-    w1 = w1(flag);
-    w2 = w2(flag);
-    w3 = w3(flag);
-    tke1 = tke1(flag);
-    tke2 = tke2(flag);
-    tke3 = tke3(flag);
-
+function transport = calc_1min_transport(w1, w2, w3, tke1, tke2, tke3, height, samplingfreq, time1, time2, time3, timen)
+    if length(time1)~=length(timen)
+        if length(time1)>length(timen)
+            w1 = w1(1:length(timen));
+            tke1 = tke1(1:length(timen));
+        else
+            w1 = interp1(time1, w1, timen, 'linear', 'extrap');
+            tke1 = interp1(time1, tke1, timen, 'linear', 'extrap');
+        end
+    end
+    if length(time2)~=length(timen)
+        if length(time2)>length(timen)
+            w2 = w2(1:length(timen));
+            tke2 = tke2(1:length(timen));
+        else
+            w2 = interp1(time2, w2, timen, 'linear', 'extrap');
+            tke2 = interp1(time2, tke2, timen, 'linear', 'extrap');
+        end
+    end
+    if length(time3)~=length(timen)
+        if length(time3)>length(timen)
+            w3 = w3(1:length(timen));
+            tke3 = tke3(1:length(timen));
+        else
+            w3 = interp1(time3, w3, timen, 'linear', 'extrap');
+            tke3 = interp1(time3, tke3, timen, 'linear', 'extrap');
+        end
+    end
     % Weighted Finite Difference Method
     weight1 = (height(3)-height(2)) / (height(3)-height(1));
     weight3 = (height(2)-height(1)) / (height(3)-height(1));
@@ -114,22 +162,27 @@ function transport = calc_1min_transport(w1, w2, w3, tke1, tke2, tke3, height, s
     transport = calc_1min_ave(transport_temp, samplingfreq);
 end
 
-function dissipation_rate = calc_1min_disp(u, Um, samplingfreq, flag)
-    u = u(flag);
-    structure_function = calc_structure_function(u);
-    epsilon = calc_dissipation_rate(structure_function, Um, length(u), 1/samplingfreq);
-
-    dissipation_rate = calc_1min_ave(epsilon, samplingfreq);
+function dissipation_rate = calc_1min_disp(u2, Um2, samplingfreq, time2, timen)
+    if length(time2)~=length(timen)
+        if length(time2)>length(timen)
+            u2 = u2(1:length(timen));
+        else
+            u2 = interp1(time2, u2, timen, 'linear', 'extrap');
+        end
+    end
+    structure_function = calc_structure_function(u2);
+    epsilon = calc_dissipation_rate(structure_function, Um2, length(u2), 1/samplingfreq);
+    dissipation_rate = -epsilon;
 end
 
 function epsilon = calc_dissipation_rate(structure_function, U, nPoints, dt)
     % U is the mean velocity to convert time to distance
-    y1 = structure_function';
+    y1 = structure_function;
     timemax_insec = nPoints*dt/2;
     r_value = linspace(dt.*U, timemax_insec.*U, floor(nPoints/2));
     y2 = r_value.^(2/3);
     [~, I] = min(abs(log(y2(1:20))-log(y1(1:20))));
-    c_A2 = (y2 ./ (y2(I) / (y1(I)))) ./ y2;
+    c_A2 = (y2 ./ (y2(I) ./ (y1(I)))) ./ y2;
     epsilon_array = (c_A2 .^ (3/2)) .* 0.35;
     epsilon = epsilon_array(1);
 end
@@ -143,5 +196,50 @@ function structure_function = calc_structure_function(u)
         ri = r(i);
         vel_diff = (u(1+ri:end) - u(1:end-ri)).^2;
         structure_function(i) = mean(vel_diff(:), 'omitmissing'); % average over the grid
+    end
+end
+
+%%
+xvalues = 1:80;
+% Set font properties
+set(0, 'DefaultAxesFontWeight', 'bold');
+set(0, 'DefaultAxesFontSize', 20);
+figure('Position', [200 100 1200 800])
+for ti=1:4
+    subaxis(4, 1, ti, 'sh', 0, 'sv', 0.01, 'padding', 0, 'ML', 0.08, 'MB', 0.08, 'MR', 0.07, 'MT', 0.05);
+    plot([buoy{1,ti}; buoy{2,ti}; buoy{3,ti}], 'r', 'LineWidth',2)
+    hold on
+    plot([shear{1,ti}; shear{2,ti}; shear{3,ti}], 'b', 'LineWidth',2)
+    hold on
+    plot([transport{1,ti}; transport{2,ti}; transport{3,ti}], 'c', 'LineWidth',2)
+    hold on
+    plot([dissipation_rate{1,ti}.*ones(size(buoy{1,ti})); dissipation_rate{2,ti}.*ones(size(buoy{2,ti})); dissipation_rate{3,ti}.*ones(size(buoy{3,ti}))], 'k--', 'LineWidth',2)
+    hold on
+    ylim([-0.3 0.6])
+    xlim([0 80])
+    if ti~=4
+        xticklabels('')
+    end
+    grid on
+    xL=xlim;
+    yL=ylim;
+    text(xL(2), yL(2), towers{ti},'HorizontalAlignment','right','VerticalAlignment','top', "FontSize",20,"FontWeight","bold")
+    if ti==1 || ti==4
+        xline(31, 'm--', 'LineWidth',2)
+        hold on
+        xline(45, 'm--', 'LineWidth',2)
+    else
+        xline(31, 'm--', 'LineWidth',2)
+        hold on
+        xline(50, 'm--', 'LineWidth',2)
+    end
+    if ti==1
+        legend('buoyancy', 'shear', 'transport', 'dissipation', 'box', 'off', 'Orientation','horizontal')
+    end
+    if ti==2
+        ylabel('TKE Budget Components [m^2 s^{-3}]')
+    end
+    if ti==4
+        xlabel('Minutes')
     end
 end
