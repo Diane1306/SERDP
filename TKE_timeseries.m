@@ -65,18 +65,29 @@ CumSec_n{2, 5} = time_temp';
 %% dissipation rate
 height = [3, 10, 19];
 samplingfreq = 10;
-buoy = cell(size(CumSec10));
-shear = cell(size(CumSec10));
-transport = cell(size(CumSec10));
-dissipation_rate = cell(size(CumSec10));
+buoy = cell([size(CumSec10),3]);
+shear = cell([size(CumSec10),3]);
+transport = cell([size(CumSec10),3]);
+dissipation_rate = cell([size(CumSec10),3]);
 time_ave = cell(size(CumSec10));
 
 for di=1:3
     for ti=1:4
-        buoy{di, ti} = calc_1min_buoy(T10{di,ti}, wt10{di,ti}, samplingfreq, CumSec10{di, ti}, CumSec_n{di, ti});
-        shear{di, ti} = calc_1min_shear(uw10{di,ti}, vw10{di,ti}, ww10{di,ti}, U3{di,ti}, U10{di,ti}, U20{di,ti}, V3{di,ti}, V10{di,ti}, V20{di,ti}, W3{di,ti}, W10{di,ti}, W20{di,ti}, height, samplingfreq, CumSec10{di, ti}, CumSec_n{di, ti});
-        transport{di, ti} = calc_1min_transport(w3{di,ti}, w10{di,ti}, w20{di,ti}, tke3{di,ti}, tke10{di,ti}, tke20{di,ti}, height, samplingfreq, CumSec3{di, ti}, CumSec10{di, ti}, CumSec20{di, ti}, CumSec_n{di, ti});
-        dissipation_rate{di, ti} = calc_1min_disp(usw10{di,ti}, Usw10{di,ti}, samplingfreq, CumSec10{di, ti}, CumSec_n{di, ti});
+        buoy{di, ti, 1} = calc_1min_buoy(T3{di,ti}, wt3{di,ti}, samplingfreq, CumSec3{di, ti}, CumSec_n{di, ti});
+        shear{di, ti, 1} = calc_1min_shear("forward", uw3{di,ti}, vw3{di,ti}, ww3{di,ti}, U3{di,ti}, U10{di,ti}, U20{di,ti}, V3{di,ti}, V10{di,ti}, V20{di,ti}, W3{di,ti}, W10{di,ti}, W20{di,ti}, height, samplingfreq, CumSec3{di, ti}, CumSec_n{di, ti});
+        transport{di, ti, 1} = calc_1min_transport("forward", w3{di,ti}, w10{di,ti}, w20{di,ti}, tke3{di,ti}, tke10{di,ti}, tke20{di,ti}, height, samplingfreq, CumSec3{di, ti}, CumSec10{di, ti}, CumSec20{di, ti}, CumSec_n{di, ti});
+        dissipation_rate{di, ti, 1} = calc_1min_disp(usw3{di,ti}, Usw3{di,ti}, samplingfreq, CumSec3{di, ti}, CumSec_n{di, ti});
+        
+        buoy{di, ti, 2} = calc_1min_buoy(T10{di,ti}, wt10{di,ti}, samplingfreq, CumSec10{di, ti}, CumSec_n{di, ti});
+        shear{di, ti, 2} = calc_1min_shear("center", uw10{di,ti}, vw10{di,ti}, ww10{di,ti}, U3{di,ti}, U10{di,ti}, U20{di,ti}, V3{di,ti}, V10{di,ti}, V20{di,ti}, W3{di,ti}, W10{di,ti}, W20{di,ti}, height, samplingfreq, CumSec10{di, ti}, CumSec_n{di, ti});
+        transport{di, ti, 2} = calc_1min_transport("center", w3{di,ti}, w10{di,ti}, w20{di,ti}, tke3{di,ti}, tke10{di,ti}, tke20{di,ti}, height, samplingfreq, CumSec3{di, ti}, CumSec10{di, ti}, CumSec20{di, ti}, CumSec_n{di, ti});
+        dissipation_rate{di, ti, 2} = calc_1min_disp(usw10{di,ti}, Usw10{di,ti}, samplingfreq, CumSec10{di, ti}, CumSec_n{di, ti});
+        
+        buoy{di, ti, 3} = calc_1min_buoy(T20{di,ti}, wt20{di,ti}, samplingfreq, CumSec20{di, ti}, CumSec_n{di, ti});
+        shear{di, ti, 3} = calc_1min_shear("backward", uw20{di,ti}, vw20{di,ti}, ww20{di,ti}, U3{di,ti}, U10{di,ti}, U20{di,ti}, V3{di,ti}, V10{di,ti}, V20{di,ti}, W3{di,ti}, W10{di,ti}, W20{di,ti}, height, samplingfreq, CumSec20{di, ti}, CumSec_n{di, ti});
+        transport{di, ti, 3} = calc_1min_transport("backward", w3{di,ti}, w10{di,ti}, w20{di,ti}, tke3{di,ti}, tke10{di,ti}, tke20{di,ti}, height, samplingfreq, CumSec3{di, ti}, CumSec10{di, ti}, CumSec20{di, ti}, CumSec_n{di, ti});
+        dissipation_rate{di, ti, 3} = calc_1min_disp(usw20{di,ti}, Usw20{di,ti}, samplingfreq, CumSec20{di, ti}, CumSec_n{di, ti});
+        
         time_ave{di, ti} = calc_1min_ave(CumSec_n{di, ti}, samplingfreq);
     end
 end
@@ -90,44 +101,55 @@ function term = calc_1min_ave(term_temp, samplingfreq)
     term(len_term) = mean(term_temp((len_term-1)*samplingfreq*60+1:end), "omitmissing");
 end
 
-function buoy = calc_1min_buoy(Tm2, wt2, samplingfreq, time2, timen)
-    if length(time2)~=length(timen)
-        if length(time2)>length(timen)
-            wt2 = wt2(1:length(timen));
+function buoy = calc_1min_buoy(Tmi, wti, samplingfreq, timei, timen)
+    if length(timei)~=length(timen)
+        if length(timei)>length(timen)
+            wti = wti(1:length(timen));
         else
-            wt2 = interp1(time2, wt2, timen, 'linear', 'extrap');
+            wti = interp1(timei, wti, timen, 'linear', 'extrap');
         end
     end
     g = 9.81;  %m/s^2 gravity
-    buoy_temp = g ./ (Tm2 + 273.15) .* wt2;
+    buoy_temp = g ./ (Tmi + 273.15) .* wti;
 
     buoy = calc_1min_ave(buoy_temp, samplingfreq);
 end
 
-function shear = calc_1min_shear(uw2, vw2, ww2, u1, u2, u3, v1, v2, v3, w1, w2, w3, height, samplingfreq, time2, timen)
-    if length(time2)~=length(timen) 
-        if length(time2)>length(timen)
-            uw2 = uw2(1:length(timen));
-            vw2 = vw2(1:length(timen));
-            ww2 = ww2(1:length(timen));
+function shear = calc_1min_shear(grad_method, uwi, vwi, wwi, u1, u2, u3, v1, v2, v3, w1, w2, w3, height, samplingfreq, timei, timen)
+    if length(timei)~=length(timen) 
+        if length(timei)>length(timen)
+            uwi = uwi(1:length(timen));
+            vwi = vwi(1:length(timen));
+            wwi = wwi(1:length(timen));
         else
-            uw2 = interp1(time2, uw2, timen, 'linear', 'extrap');
-            vw2 = interp1(time2, vw2, timen, 'linear', 'extrap');
-            ww2 = interp1(time2, ww2, timen, 'linear', 'extrap');
+            uwi = interp1(timei, uwi, timen, 'linear', 'extrap');
+            vwi = interp1(timei, vwi, timen, 'linear', 'extrap');
+            wwi = interp1(timei, wwi, timen, 'linear', 'extrap');
         end
     end
-    % Weighted Finite Difference Method
-    weight1 = (height(3)-height(2)) / (height(3)-height(1));
-    weight3 = (height(2)-height(1)) / (height(3)-height(1));
-    grad_U = weight1 .* (u2-u1)./(height(2)-height(1)) + weight3 .* (u3-u2)./(height(3)-height(2));
-    grad_V = weight1 .* (v2-v1)./(height(2)-height(1)) + weight3 .* (v3-v2)./(height(3)-height(2));
-    grad_W = weight1 .* (w2-w1)./(height(2)-height(1)) + weight3 .* (w3-w2)./(height(3)-height(2));
 
-    shear_temp = -uw2 .* grad_U -vw2 .* grad_V -ww2 .* grad_W;
+    if strcmp(grad_method, "center") % 10m
+        % Weighted Finite Difference Method
+        weight1 = (height(3)-height(2)) / (height(3)-height(1));
+        weight3 = (height(2)-height(1)) / (height(3)-height(1));
+        grad_U = weight1 .* (u2-u1)./(height(2)-height(1)) + weight3 .* (u3-u2)./(height(3)-height(2));
+        grad_V = weight1 .* (v2-v1)./(height(2)-height(1)) + weight3 .* (v3-v2)./(height(3)-height(2));
+        grad_W = weight1 .* (w2-w1)./(height(2)-height(1)) + weight3 .* (w3-w2)./(height(3)-height(2));
+    elseif strcmp(grad_method, "forward") % 3m
+        grad_U = (u2-u1)./(height(2)-height(1));
+        grad_V = (v2-v1)./(height(2)-height(1));
+        grad_W = (w2-w1)./(height(2)-height(1));
+    elseif strcmp(grad_method, "backward") % 19m
+        grad_U = (u3-u2)./(height(3)-height(2));
+        grad_V = (v3-v2)./(height(3)-height(2));
+        grad_W = (w3-w2)./(height(3)-height(2));
+    end
+
+    shear_temp = -uwi .* grad_U -vwi .* grad_V -wwi .* grad_W;
     shear = calc_1min_ave(shear_temp, samplingfreq);
 end
 
-function transport = calc_1min_transport(w1, w2, w3, tke1, tke2, tke3, height, samplingfreq, time1, time2, time3, timen)
+function transport = calc_1min_transport(grad_method, w1, w2, w3, tke1, tke2, tke3, height, samplingfreq, time1, time2, time3, timen)
     if length(time1)~=length(timen)
         if length(time1)>length(timen)
             w1 = w1(1:length(timen));
@@ -155,23 +177,30 @@ function transport = calc_1min_transport(w1, w2, w3, tke1, tke2, tke3, height, s
             tke3 = interp1(time3, tke3, timen, 'linear', 'extrap');
         end
     end
-    % Weighted Finite Difference Method
-    weight1 = (height(3)-height(2)) / (height(3)-height(1));
-    weight3 = (height(2)-height(1)) / (height(3)-height(1));
-    transport_temp = weight1 .* (w2.*tke2 - w1.*tke1)./(height(2)-height(1)) + weight3 .* (w3.*tke3 - w2.*tke2)./(height(3)-height(2));
+
+    if strcmp(grad_method, "center") % 10m
+        % Weighted Finite Difference Method
+        weight1 = (height(3)-height(2)) / (height(3)-height(1));
+        weight3 = (height(2)-height(1)) / (height(3)-height(1));
+        transport_temp = weight1 .* (w2.*tke2 - w1.*tke1)./(height(2)-height(1)) + weight3 .* (w3.*tke3 - w2.*tke2)./(height(3)-height(2));
+    elseif strcmp(grad_method, "forward")
+        transport_temp = (w2.*tke2 - w1.*tke1)./(height(2)-height(1));
+    elseif strcmp(grad_method, "backward")
+        transport_temp = (w3.*tke3 - w2.*tke2)./(height(3)-height(2));
+    end
     transport = calc_1min_ave(transport_temp, samplingfreq);
 end
 
-function dissipation_rate = calc_1min_disp(u2, Um2, samplingfreq, time2, timen)
-    if length(time2)~=length(timen)
-        if length(time2)>length(timen)
-            u2 = u2(1:length(timen));
+function dissipation_rate = calc_1min_disp(ui, Umi, samplingfreq, timei, timen)
+    if length(timei)~=length(timen)
+        if length(timei)>length(timen)
+            ui = ui(1:length(timen));
         else
-            u2 = interp1(time2, u2, timen, 'linear', 'extrap');
+            ui = interp1(timei, ui, timen, 'linear', 'extrap');
         end
     end
-    structure_function = calc_structure_function(u2);
-    epsilon = calc_dissipation_rate(structure_function, Um2, length(u2), 1/samplingfreq);
+    structure_function = calc_structure_function(ui);
+    epsilon = calc_dissipation_rate(structure_function, Umi, length(ui), 1/samplingfreq);
     dissipation_rate = -epsilon;
 end
 
@@ -201,45 +230,69 @@ end
 
 %%
 xvalues = 1:80;
+timeticks = {{' ', '15:05', ' ', '15:25', ' ', '15:45', ' ', '16:05', ' '},...
+    {' ', '15:53', ' ', '16:13', ' ', '16:33', ' ', '16:53', ' '},...
+    {' ', '15:05', ' ', '15:25', ' ', '15:45', ' ', '16:05', ' '},...
+    {' ', '15:18', ' ', '15:38', ' ', '15:58', ' ', '16:18', ' '}};
 % Set font properties
 set(0, 'DefaultAxesFontWeight', 'bold');
 set(0, 'DefaultAxesFontSize', 20);
 figure('Position', [200 100 1200 800])
 for ti=1:4
-    subaxis(4, 1, ti, 'sh', 0, 'sv', 0.01, 'padding', 0, 'ML', 0.08, 'MB', 0.08, 'MR', 0.07, 'MT', 0.05);
-    plot([buoy{1,ti}; buoy{2,ti}; buoy{3,ti}], 'r', 'LineWidth',2)
-    hold on
-    plot([shear{1,ti}; shear{2,ti}; shear{3,ti}], 'b', 'LineWidth',2)
-    hold on
-    plot([transport{1,ti}; transport{2,ti}; transport{3,ti}], 'c', 'LineWidth',2)
-    hold on
-    plot([dissipation_rate{1,ti}.*ones(size(buoy{1,ti})); dissipation_rate{2,ti}.*ones(size(buoy{2,ti})); dissipation_rate{3,ti}.*ones(size(buoy{3,ti}))], 'k--', 'LineWidth',2)
-    hold on
-    ylim([-0.3 0.6])
-    xlim([0 80])
-    if ti~=4
-        xticklabels('')
-    end
-    grid on
-    xL=xlim;
-    yL=ylim;
-    text(xL(2), yL(2), towers{ti},'HorizontalAlignment','right','VerticalAlignment','top', "FontSize",20,"FontWeight","bold")
-    if ti==1 || ti==4
-        xline(31, 'm--', 'LineWidth',2)
+    for hi=1:3
+        if ti<3
+            pi = ((ti-1)*3+hi)*2-1;
+        else
+            pi = ((ti-1)*3+hi)*2-12;
+        end
+        if pi<7
+            mt_value = 0.05;
+        else
+            mt_value = 0.08;
+        end
+        subaxis(6, 2, pi, 'sh', 0.01, 'sv', 0.01, 'padding', 0, 'ML', 0.06, 'MB', 0.08, 'MR', 0.01, 'MT', mt_value);
+        plot([buoy{1, ti, 3-hi+1}; buoy{2,ti, 3-hi+1}; buoy{3,ti, 3-hi+1}], 'r', 'LineWidth',2)
         hold on
-        xline(45, 'm--', 'LineWidth',2)
-    else
-        xline(31, 'm--', 'LineWidth',2)
+        plot([shear{1,ti, 3-hi+1}; shear{2,ti, 3-hi+1}; shear{3,ti, 3-hi+1}], 'b', 'LineWidth',2)
         hold on
-        xline(50, 'm--', 'LineWidth',2)
-    end
-    if ti==1
-        legend('buoyancy', 'shear', 'transport', 'dissipation', 'box', 'off', 'Orientation','horizontal')
-    end
-    if ti==2
-        ylabel('TKE Budget Components [m^2 s^{-3}]')
-    end
-    if ti==4
-        xlabel('Minutes')
+        plot([transport{1,ti, 3-hi+1}; transport{2,ti, 3-hi+1}; transport{3,ti, 3-hi+1}], 'c', 'LineWidth',2)
+        hold on
+        plot([dissipation_rate{1,ti, 3-hi+1}.*ones(size(buoy{1,ti, 3-hi+1})); dissipation_rate{2,ti, 3-hi+1}.*ones(size(buoy{2,ti, 3-hi+1})); dissipation_rate{3,ti, 3-hi+1}.*ones(size(buoy{3,ti, 3-hi+1}))], 'k--', 'LineWidth',2)
+        hold on
+        ylim([-0.4 0.75])
+        xlim([0 80])
+        xticks(0:10:80)
+        if ti>2
+            yticklabels('')
+        end
+        if ~ismember(pi, [5, 6, 11, 12])
+            xticklabels('')
+        else
+            xticklabels(timeticks{ti})
+            xlabel('EDT')
+        end
+        grid on
+        xL=xlim;
+        yL=ylim;
+        if hi==1
+            text(xL(2), yL(2), towers{ti},'HorizontalAlignment','right','VerticalAlignment','top', "FontSize",20,"FontWeight","bold")
+        end
+        text(xL(1), yL(2), [num2str(height(3-hi+1)),' m'],'HorizontalAlignment','left','VerticalAlignment','top', "FontSize",20,"FontWeight","bold")
+        
+        if ti==1 || ti==4
+            xline(30, 'm--', 'LineWidth',2)
+            hold on
+            xline(45, 'm--', 'LineWidth',2)
+        else
+            xline(30, 'm--', 'LineWidth',2)
+            hold on
+            xline(50, 'm--', 'LineWidth',2)
+        end
+        if pi==1
+            legend('buoyancy', 'shear', 'transport', 'dissipation', 'box', 'off', 'Orientation','horizontal', "FontSize",20)
+        end
+        if pi==5
+            ylabel('TKE Budget Components [m^2 s^{-3}]', "FontSize",20)
+        end
     end
 end
