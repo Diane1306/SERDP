@@ -248,6 +248,15 @@ for ti=1:5
             [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2);
             wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
             hold on
+            xline(30*60-1, 'Color','r','LineWidth',2,'LineStyle','--')
+            hold on
+            if ti==2 || ti==3 || ti==5
+                xline((30+20)*60-1, 'Color','r','LineWidth',2,'LineStyle','--')
+                hold on
+            elseif ti==1 || ti==4
+                xline((30+15)*60-1, 'Color','r','LineWidth',2,'LineStyle','--')
+                hold on
+            end
             if ti==4 && hi==2
                 cb = colorbar;
                 cb.Location = "southoutside";
@@ -291,13 +300,8 @@ for ti=1:5
                     xticklabels({'15:08', '15:38', '15:53', '16:23'});
                 end
             elseif ti==5
-                if hi<3
-                    xticks([0, 30*60-1, (30+20)*60-1]);
-                    xticklabels({'14:25', '14:55', '15:15'});
-                else
-                    xticks([0, 30*60-1, (30+20)*60-1, (30+20+30)*60-1]);
-                    xticklabels({'14:25', '14:55', '15:15', '15:45'});
-                end
+                xticks([0, 30*60-1, (30+20)*60-1, (30+20+30)*60-1]);
+                xticklabels({'14:25', '14:55', '15:15', '15:45'});
             end
             
             if hi>1
@@ -317,17 +321,6 @@ for ti=1:5
             
             if hi==3
                 text(xL(2)*1.008, yL(2)/2, towerstitle{ti},'HorizontalAlignment','left','VerticalAlignment','middle', "FontSize",22,"FontWeight","bold")
-            end
-            if ti==1 || ti==2 || ti==5
-                xline((xL(2)-xL(1))*30/(30+20+30)+xL(1), 'Color','r','LineWidth',2,'LineStyle','--')
-                hold on
-                xline((xL(2)-xL(1))*(30+20)/(30+20+30)+xL(1), 'Color','r','LineWidth',2,'LineStyle','--')
-                hold on
-            elseif ti==3 || ti==4
-                xline((xL(2)-xL(1))*30/(30+15+30)+xL(1), 'Color','r','LineWidth',2,'LineStyle','--')
-                hold on
-                xline((xL(2)-xL(1))*(30+15)/(30+15+30)+xL(1), 'Color','r','LineWidth',2,'LineStyle','--')
-                hold on
             end
         end
     end
