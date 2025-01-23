@@ -33,6 +33,12 @@ function [ww, tt, CumSec] = get_data(dr, towers, height)
     end
 end
 
+%% create standard CumSec
+CumSec_n = CumSec20;
+CumSec_n{3, 5} = CumSec3{3, 5};
+time_temp = CumSec20{2, 5}(1):0.1:CumSec20{2, 5}(1)+(12000-1)*0.1;
+CumSec_n{2, 5} = time_temp';
+
 %%
 function [cospectrum, freq] = cross_wavelet(a, b, scales)
     Cg = 0.776; % Torrence et al., 1998
@@ -48,38 +54,38 @@ function [cospectrum, freq] = cross_wavelet(a, b, scales)
 end
 
 %%
-function [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2)
-    % Helper function to process a single array
-    function [filteredData, originalIndices] = processArray(data)
-        % Identify missing data (assume missing data is NaN)
-        missingIdx = isnan(data);
+% Helper function to process a single array
+function [filteredData, originalIndices] = processArray(data)
+    % Identify missing data (assume missing data is NaN)
+    missingIdx = isnan(data);
 
-        % If missing data is at the beginning or end, remove those elements
-        startIdx = find(~missingIdx, 1, 'first');
-        endIdx = find(~missingIdx, 1, 'last');
+    % If missing data is at the beginning or end, remove those elements
+    startIdx = find(~missingIdx, 1, 'first');
+    endIdx = find(~missingIdx, 1, 'last');
 
-        if isempty(startIdx) || isempty(endIdx)
-            % All data is missing, return empty results
-            filteredData = [];
-            originalIndices = [];
-            return;
-        end
-
-        % Remove data before startIdx and after endIdx
-        data = data(startIdx:endIdx);
-        originalIndices = startIdx:endIdx;
-
-        % Update missingIdx for the trimmed data
-        missingIdx = isnan(data);
-
-        % Perform linear interpolation for missing values in the middle
-        x = 1:length(data);
-        data(missingIdx) = interp1(x(~missingIdx), data(~missingIdx), x(missingIdx));
-
-        % Return the filtered data and the final indices
-        filteredData = data;
+    if isempty(startIdx) || isempty(endIdx)
+        % All data is missing, return empty results
+        filteredData = [];
+        originalIndices = [];
+        return;
     end
 
+    % Remove data before startIdx and after endIdx
+    data = data(startIdx:endIdx);
+    originalIndices = startIdx:endIdx;
+
+    % Update missingIdx for the trimmed data
+    missingIdx = isnan(data);
+
+    % Perform linear interpolation for missing values in the middle
+    x = 1:length(data);
+    data(missingIdx) = interp1(x(~missingIdx), data(~missingIdx), x(missingIdx));
+
+    % Return the filtered data and the final indices
+    filteredData = data;
+end
+
+function [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2)
     % Process both arrays
     [filteredData1, originalIndices1] = processArray(data1);
     [filteredData2, originalIndices2] = processArray(data2);
@@ -102,25 +108,39 @@ scales = s0 .* 2.^(-3:lenscales);
 E_f_T_m = nan(length(scales), 3, 3);
 E_f_w_m = nan(length(scales), 3, 3);
 cospectrum_m = nan(length(scales), 3, 3);
-[E_f_T_m(:, :, 3), E_f_w_m(:, :, 3), ~, cospectrum_m(:, :, 3), ~] = get_power(ww3, tt3, 5, scales);
-[E_f_T_m(:, :, 2), E_f_w_m(:, :, 2), ~, cospectrum_m(:, :, 2), ~] = get_power(ww10, tt10, 4, scales);
-[E_f_T_m(:, :, 1), E_f_w_m(:, :, 1), frequencies, cospectrum_m(:, :, 1), cospectrum_freq] = get_power(ww20, tt20, 5, scales);
+[E_f_T_m(:, :, 3), E_f_w_m(:, :, 3), ~, cospectrum_m(:, :, 3), ~] = get_power(ww3, tt3, 5, scales, CumSec3, CumSec_n);
+[E_f_T_m(:, :, 2), E_f_w_m(:, :, 2), ~, cospectrum_m(:, :, 2), ~] = get_power(ww10, tt10, 4, scales, CumSec10, CumSec_n);
+[E_f_T_m(:, :, 1), E_f_w_m(:, :, 1), frequencies, cospectrum_m(:, :, 1), cospectrum_freq] = get_power(ww20, tt20, 5, scales, CumSec20, CumSec_n);
 
-function [E_f_T_m, E_f_w_m, frequencies, cospectrum_m, cospectrum_freq] = get_power(ww, tt, lentowers, scales)
+function data_interpolated = interpolate(data, timei, timen)
+    if length(timei)~=length(timen) 
+        if length(timei)>length(timen)
+            data_interpolated = data(1:length(timen));
+        else
+            data_interpolated = interp1(timei, data, timen, 'linear', 'extrap');
+        end
+    else
+        data_interpolated = data;
+    end
+end
+
+function [E_f_T_m, E_f_w_m, frequencies, cospectrum_m, cospectrum_freq] = get_power(ww, tt, lentowers, scales, Cumseci, Cumsecn)
     Cg = pi;
     fc = 0.251;
     E_f_T = nan(length(scales), 3, lentowers);
     E_f_w = nan(length(scales), 3, lentowers);
     for ti=1:lentowers
         for di = 1:3
-            df = rmmissing(tt{di, ti});
+            df = interpolate(tt{di, ti}, Cumseci{di, ti}, Cumsecn{di, ti});
+            [df, ~] = processArray(df);
             cwtstruct_temp = cwtft(df, 'wavelet', 'mexh', 'scales', scales);
             W_ab_T = cwtstruct_temp.cfs';
             frequencies = cwtstruct_temp.frequencies';
             var_df = mean((df-mean(df)).^2);
             E_f_T(:, di, ti) = squeeze(mean(abs(W_ab_T).^2, 1)) ./ (Cg.*fc.*var_df); % frequency-dependent wavelet energy 
             
-            df = rmmissing(ww{di, ti});
+            df = interpolate(ww{di, ti}, Cumseci{di, ti}, Cumsecn{di, ti});
+            [df, ~] = processArray(df);
             cwtstruct_temp = cwtft(df, 'wavelet', 'mexh', 'scales', scales);
             W_ab_w = cwtstruct_temp.cfs';
             var_df = mean((df-mean(df)).^2);
@@ -133,7 +153,11 @@ function [E_f_T_m, E_f_w_m, frequencies, cospectrum_m, cospectrum_freq] = get_po
     cospectrum = nan(length(scales), 3, lentowers);
     for ti=1:lentowers
         for di=1:3
-            [cospectrum(:, di, ti), cospectrum_freq] = cross_wavelet(rmmissing(tt{di, ti}),rmmissing(ww{di, ti}), scales);
+            df_tt = interpolate(tt{di, ti}, Cumseci{di, ti}, Cumsecn{di, ti});
+            [df_tt, ~] = processArray(df_tt);
+            df_ww = interpolate(ww{di, ti}, Cumseci{di, ti}, Cumsecn{di, ti});
+            [df_ww, ~] = processArray(df_ww);
+            [cospectrum(:, di, ti), cospectrum_freq] = cross_wavelet(df_tt, df_ww, scales);
             
         end
     end
@@ -204,58 +228,95 @@ for hi=1:3
 end
 
 %%
-tt10_copy = [tt10(:,5),tt10(:,1:4)];
-ww10_copy = [ww10(:,5),ww10(:,1:4)];
-tt = {tt20, tt10_copy, tt3};
-ww = {ww20, ww10_copy, ww3};
-towerstitle = {'South', 'West', 'Flux', 'East', 'North'};
+tt = {tt3, tt10, tt20};
+ww = {ww3, ww10, ww20};
+Cumsec = {CumSec3, CumSec10, CumSec20};
+towerstitle = {'Flux', 'North', 'West', 'East', 'South'};
 figure('Position', [200 100 1400 800])
-for hi=1:3
-    for ti=1:5
-        if ~(hi==2 && ti==1)
-            subaxis(3, 5, (hi-1)*5+ti, 'sh', 0.005, 'sv', 0.006, 'padding', 0, 'ML', 0.05, 'MB', 0.08, 'MR', 0.09, 'MT', 0.05);
-            data1 = [rmmissing(ww{hi}{1,ti});rmmissing(ww{hi}{2,ti});rmmissing(ww{hi}{3,ti})];
-            data2 = [rmmissing(tt{hi}{1,ti});rmmissing(tt{hi}{2,ti});rmmissing(tt{hi}{3,ti})];
+
+for ti=1:5
+    for hi=1:3
+        if ~(hi==2 && ti==5)
+            subaxis(5, 3, (ti-1)*3+hi, 'sh', 0.003, 'sv', 0.028, 'padding', 0, 'ML', 0.05, 'MB', 0.04, 'MR', 0.05, 'MT', 0.04);
+            
+            data1 = [processArray(interpolate(ww{hi}{1,ti}, Cumsec{hi}{1, ti}, CumSec_n{1, ti}));...
+                processArray(interpolate(ww{hi}{2,ti}, Cumsec{hi}{2, ti}, CumSec_n{2, ti}));...
+                processArray(interpolate(ww{hi}{3,ti}, Cumsec{hi}{3, ti}, CumSec_n{3, ti}))];
+            data2 = [processArray(interpolate(tt{hi}{1,ti}, Cumsec{hi}{1, ti}, CumSec_n{1, ti}));...
+                processArray(interpolate(tt{hi}{2,ti}, Cumsec{hi}{2, ti}, CumSec_n{2, ti}));...
+                processArray(interpolate(tt{hi}{3,ti}, Cumsec{hi}{3, ti}, CumSec_n{3, ti}))];
             [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2);
             wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
             hold on
-            if ti==5 && hi==1
+            if ti==4 && hi==2
                 cb = colorbar;
-                cb.Position = [0.96, 0.07, 0.01, 0.88]; % [left, bottom, width, height]
+                cb.Location = "southoutside";
+                cb.Position = [0.36 0.18 0.28 0.01]; % [left, bottom, width, height]
             else
                 colorbar('off'); % Turn off colorbar visibility for this subplot
             end
-            if hi<3
-                xlabel('')
-                xticklabels('')
-            end
-            if hi~=2
-                if ti>1
-                    ylabel('')
-                    yticklabels('')
-                else
-                    yticks(0:2:11);
-                    yticklabels(2.^(0:2:11));
-                end
-            else
-                if ti~=2
-                    ylabel('')
-                    yticklabels('')
-                else
-                    yticks(0:2:11);
-                    yticklabels(2.^(0:2:11));
-                end
-                
-            end
-            if hi>1
-                title('')
-            else
-                title(towerstitle{ti})
-            end
+            xlabel('')
             xL=xlim;
             yL=ylim;
-            if ti==4
-                text(xL(2)*2.32, yL(2)/2, heights{hi},'HorizontalAlignment','right','VerticalAlignment','middle', "FontSize",24,"FontWeight","bold")
+            if ti==1
+                if hi<3
+                    xticks([0, 30*60-1, (30+15)*60-1]);
+                    xticklabels({'14:55', '15:25', '15:40'});
+                else
+                    xticks([0, 30*60-1, (30+15)*60-1, xL(2)]);
+                    xticklabels({'14:55', '15:25', '15:40', '16:10'});
+                end
+            elseif ti==2
+                if hi<3
+                    xticks([0, 30*60-1, (30+20)*60-1]);
+                    xticklabels({'15:43', '16:13', '16:33'});
+                else
+                    xticks([0, 30*60-1, (30+20)*60-1, (30+20+30)*60-1]);
+                    xticklabels({'15:43', '16:13', '16:33', '17:03'});
+                end
+            elseif ti==3
+                if hi<3
+                    xticks([0, 30*60-1, (30+20)*60-1]);
+                    xticklabels({'14:55', '15:25', '15:45'});
+                else
+                    xticks([0, 30*60-1, (30+20)*60-1, (30+20+30)*60-1]);
+                    xticklabels({'14:55', '15:25', '15:45', '16:15'});
+                end
+            elseif ti==4
+                if hi<3
+                    xticks([0, 30*60-1, (30+15)*60-1]);
+                    xticklabels({'15:08', '15:38', '15:53'});
+                else
+                    xticks([0, 30*60-1, (30+15)*60-1, (30+15+30)*60-1]);
+                    xticklabels({'15:08', '15:38', '15:53', '16:23'});
+                end
+            elseif ti==5
+                if hi<3
+                    xticks([0, 30*60-1, (30+20)*60-1]);
+                    xticklabels({'14:25', '14:55', '15:15'});
+                else
+                    xticks([0, 30*60-1, (30+20)*60-1, (30+20+30)*60-1]);
+                    xticklabels({'14:25', '14:55', '15:15', '15:45'});
+                end
+            end
+            
+            if hi>1
+                ylabel('')
+                yticklabels('')
+            else
+                yticks(0:2:11);
+                yticklabels(2.^(0:2:11));
+                ylabel('Period [s]')
+            end
+            
+            if ti>1
+                title('')
+            else
+                title(heights{3-hi+1}, "FontSize",24)
+            end
+            
+            if hi==3
+                text(xL(2)*1.008, yL(2)/2, towerstitle{ti},'HorizontalAlignment','left','VerticalAlignment','middle', "FontSize",22,"FontWeight","bold")
             end
             if ti==1 || ti==2 || ti==5
                 xline((xL(2)-xL(1))*30/(30+20+30)+xL(1), 'Color','r','LineWidth',2,'LineStyle','--')
