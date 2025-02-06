@@ -248,13 +248,13 @@ for ti=1:5
             [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2);
             wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
             hold on
-            xline(30*60-1, 'Color','r','LineWidth',2,'LineStyle','--')
+            xline(30*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
             hold on
             if ti==2 || ti==3 || ti==5
-                xline((30+20)*60-1, 'Color','r','LineWidth',2,'LineStyle','--')
+                xline((30+20)*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
                 hold on
             elseif ti==1 || ti==4
-                xline((30+15)*60-1, 'Color','r','LineWidth',2,'LineStyle','--')
+                xline((30+15)*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
                 hold on
             end
             if ti==4 && hi==2
