@@ -39,6 +39,10 @@ CumSec_n{3, 5} = CumSec3{3, 5};
 time_temp = CumSec20{2, 5}(1):0.1:CumSec20{2, 5}(1)+(12000-1)*0.1;
 CumSec_n{2, 5} = time_temp';
 
+%% Define a blue-white-red colormap
+bwr = [linspace(0, 1, 128)', linspace(0, 1, 128)', ones(128, 1);  % Blue to White
+       ones(128, 1), linspace(1, 0, 128)', linspace(1, 0, 128)']; % White to Red
+
 %%
 function [cospectrum, freq] = cross_wavelet(a, b, scales)
     Cg = 0.776; % Torrence et al., 1998
@@ -246,15 +250,28 @@ for ti=1:5
                 processArray(interpolate(tt{hi}{2,ti}, Cumsec{hi}{2, ti}, CumSec_n{2, ti}));...
                 processArray(interpolate(tt{hi}{3,ti}, Cumsec{hi}{3, ti}, CumSec_n{3, ti}))];
             [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2);
-            wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
+            % wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
+            
+            % plot phase
+            [wcoh, wcs, period, coi] = wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
+            [~, leny] = size(wcoh);
+            wphase = rad2deg(angle(wcs));
+            [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
+            pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
+            colormap(hsv)
+            colorbar 
+            clim([-180 180]);      % Set color axis to match temperature change
             hold on
-            xline(30*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
+            plot(0.1*(1:leny), log2(seconds(coi)), 'w--', 'LineWidth',3)
+
+            hold on
+            xline(30*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
             hold on
             if ti==2 || ti==3 || ti==5
-                xline((30+20)*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
+                xline((30+20)*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
                 hold on
             elseif ti==1 || ti==4
-                xline((30+15)*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
+                xline((30+15)*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
                 hold on
             end
             if ti==4 && hi==2
@@ -326,6 +343,96 @@ for ti=1:5
     end
 end
 
+
+%% plot wcoherence separately
+tt = {tt3, tt10, tt20};
+ww = {ww3, ww10, ww20};
+Cumsec = {CumSec3, CumSec10, CumSec20};
+towerstitle = {'Flux', 'North', 'West', 'East', 'South'};
+
+for ti=1%:5
+    for hi=1%:3
+        if ~(hi==2 && ti==5)
+            figure('Position', [200 100 1400 800])
+            data1 = [processArray(interpolate(ww{hi}{1,ti}, Cumsec{hi}{1, ti}, CumSec_n{1, ti}));...
+                processArray(interpolate(ww{hi}{2,ti}, Cumsec{hi}{2, ti}, CumSec_n{2, ti}));...
+                processArray(interpolate(ww{hi}{3,ti}, Cumsec{hi}{3, ti}, CumSec_n{3, ti}))];
+            data2 = [processArray(interpolate(tt{hi}{1,ti}, Cumsec{hi}{1, ti}, CumSec_n{1, ti}));...
+                processArray(interpolate(tt{hi}{2,ti}, Cumsec{hi}{2, ti}, CumSec_n{2, ti}));...
+                processArray(interpolate(tt{hi}{3,ti}, Cumsec{hi}{3, ti}, CumSec_n{3, ti}))];
+            [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2);
+            [wcoh, wcs, period, coi] = wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
+            [~, leny] = size(wcoh);
+            wphase = rad2deg(angle(wcs));
+            [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
+            pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
+            colormap(hsv)
+            colorbar 
+            clim([-180 180]);      % Set color axis to match temperature change
+            hold on
+            plot(0.1*(1:leny), log2(seconds(coi)), 'w--', 'LineWidth',3)
+            
+            hold on
+            xline(30*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
+            hold on
+            if ti==2 || ti==3 || ti==5
+                xline((30+20)*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
+                hold on
+            elseif ti==1 || ti==4
+                xline((30+15)*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
+                hold on
+            end
+            colorbar;
+            xlabel('')
+            xL=xlim;
+            yL=ylim;
+            if ti==1
+                if hi<3
+                    xticks([0, 30*60-1, (30+15)*60-1]);
+                    xticklabels({'14:55', '15:25', '15:40'});
+                else
+                    xticks([0, 30*60-1, (30+15)*60-1, xL(2)]);
+                    xticklabels({'14:55', '15:25', '15:40', '16:10'});
+                end
+            elseif ti==2
+                if hi<3
+                    xticks([0, 30*60-1, (30+20)*60-1]);
+                    xticklabels({'15:43', '16:13', '16:33'});
+                else
+                    xticks([0, 30*60-1, (30+20)*60-1, (30+20+30)*60-1]);
+                    xticklabels({'15:43', '16:13', '16:33', '17:03'});
+                end
+            elseif ti==3
+                if hi<3
+                    xticks([0, 30*60-1, (30+20)*60-1]);
+                    xticklabels({'14:55', '15:25', '15:45'});
+                else
+                    xticks([0, 30*60-1, (30+20)*60-1, (30+20+30)*60-1]);
+                    xticklabels({'14:55', '15:25', '15:45', '16:15'});
+                end
+            elseif ti==4
+                if hi<3
+                    xticks([0, 30*60-1, (30+15)*60-1]);
+                    xticklabels({'15:08', '15:38', '15:53'});
+                else
+                    xticks([0, 30*60-1, (30+15)*60-1, (30+15+30)*60-1]);
+                    xticklabels({'15:08', '15:38', '15:53', '16:23'});
+                end
+            elseif ti==5
+                xticks([0, 30*60-1, (30+20)*60-1, (30+20+30)*60-1]);
+                xticklabels({'14:25', '14:55', '15:15', '15:45'});
+            end
+            
+            yticks(0:2:11);
+            yticklabels(2.^(0:2:11));
+            ylabel('Period [s]')
+            
+            title(heights{3-hi+1}, "FontSize",24)
+            text(xL(2)*1.008, yL(2)/2, towerstitle{ti},'HorizontalAlignment','left','VerticalAlignment','middle', "FontSize",22,"FontWeight","bold")
+            
+        end
+    end
+end
 
 
 
