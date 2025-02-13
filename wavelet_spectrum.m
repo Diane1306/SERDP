@@ -256,6 +256,7 @@ for ti=1:5
             [wcoh, wcs, period, coi] = wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
             [~, leny] = size(wcoh);
             wphase = rad2deg(angle(wcs));
+            % wphase(wphase<0) = wphase(wphase<0)+360;
             [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
             pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
             colormap(hsv)

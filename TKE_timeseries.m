@@ -200,20 +200,36 @@ function dissipation_rate = calc_1min_disp(ui, Umi, samplingfreq, timei, timen)
         end
     end
     structure_function = calc_structure_function(ui);
-    epsilon = calc_dissipation_rate(structure_function, Umi, length(ui), 1/samplingfreq);
+    epsilon = calc_dissipation_rate(structure_function, Umi, length(ui), 1/samplingfreq, 'structure');
+    % [~, spectra_function, ~] = calc_spectrum(ui, samplingfreq, 2);
+    % epsilon = calc_dissipation_rate(spectra_function, Umi, length(ui), 1/samplingfreq, 'spectra');
     dissipation_rate = -epsilon;
 end
 
-function epsilon = calc_dissipation_rate(structure_function, U, nPoints, dt)
+function epsilon = calc_dissipation_rate(structure_function, U, nPoints, dt, method)
     % U is the mean velocity to convert time to distance
-    y1 = structure_function;
-    timemax_insec = nPoints*dt/2;
-    r_value = linspace(dt.*U, timemax_insec.*U, floor(nPoints/2));
-    y2 = r_value.^(2/3);
-    [~, I] = min(abs(log(y2(1:20))-log(y1(1:20))));
-    c_A2 = (y2 ./ (y2(I) ./ (y1(I)))) ./ y2;
-    epsilon_array = (c_A2 .^ (3/2)) .* 0.35;
-    epsilon = epsilon_array(1);
+    if strcmp(method, 'structure')
+        y1 = structure_function;
+        timemax_insec = nPoints*dt/2;
+        r_value = linspace(dt.*U, timemax_insec.*U, floor(nPoints/2));
+        y2 = r_value.^(2/3);
+        [~, I] = min(abs(log(y2(1:20))-log(y1(1:20))));
+        c_A2 = (y2 ./ (y2(I) ./ (y1(I)))) ./ y2;
+        epsilon_array = (c_A2 .^ (3/2)) .* 0.35;
+        epsilon = epsilon_array(1);
+    elseif strcmp(method, 'spectra')
+        y1 = structure_function';
+        n = 2 .* length(structure_function);  % length of dataset
+        Nf = floor(n / 2);  % Nyquist frequency
+        freq = fftshift(fftfreq(n, 1 / 20));  % frequency corresponding to sampling rate of fs, centered at 0
+        freq = freq(Nf+1:end);  % only positive frequencies
+
+        [x1, y1] = smooth2E_AddHighFreqPoints(freq, y1, 2048);
+        y2 = x1 .^ (-5/3);
+        istart=7;
+        [~, I] = min(abs(log(y2(istart:end-3))-log(y1(istart:end-3))));
+        epsilon = 0.49 .* ((y2(istart)./ (y2(istart-1+I) ./ y1(istart-1+I))).^(3/2)) .* (x1(istart).^(5/2));
+    end
 end
 
 function structure_function = calc_structure_function(u)
@@ -228,6 +244,75 @@ function structure_function = calc_structure_function(u)
     end
 end
 
+function [freq, spectrum, sum_spectra] = calc_spectrum(data, fs, return_spectra)
+    % Calculate various spectra from input data
+    % Input:
+    %   data: input data vector
+    %   fs: sampling frequency
+    %   return_spectra: 1 for energy spectrum, 2 for spectral density, 3 for frequency weighted spectral density
+    % Output:
+    %   freq: frequency vector
+    %   spectrum: spectrum based on return_spectra choice
+    
+    n = length(data);  % length of dataset
+    Nf = floor(n / 2);  % Nyquist frequency
+    freq = fftshift(fftfreq(n, 1 / fs));  % frequency corresponding to sampling rate of fs, centered at 0
+    freq = freq(Nf+1:end);  % only positive frequencies
+    FFT = fft(data) / n;  % complex Fourier transform
+    E_spectra = zeros(1, Nf);  % energy spectrum
+    
+    if mod(n, 2)
+        E_spectra = 2 * (abs(FFT(2:Nf+1)) .^ 2);  % for odd n
+    else
+        E_spectra(1:Nf-1) = 2 * (abs(FFT(2:Nf)) .^ 2);  % for even n
+        E_spectra(Nf) = abs(FFT(Nf+1)) .^ 2;
+    end
+    
+    sum_spectra = sum(E_spectra);
+
+    delta_f = 1 / n;
+    S_spectra = E_spectra / delta_f;  % convert energy spectrum to spectral density
+    fw_S_spectra = freq .* S_spectra;  % frequency weighted spectral density
+
+    if return_spectra == 1
+        spectrum = E_spectra;
+    elseif return_spectra == 2
+        spectrum = S_spectra;
+    elseif return_spectra == 3
+        spectrum = fw_S_spectra;
+    end
+end
+
+function [fs, ps, binindices] = smooth2E_AddHighFreqPoints(f, p, limit)
+    if nargin < 3
+        limit = 2048;
+    end
+    
+    l = length(f);
+    binindices = [1];
+    
+    if l < limit
+        lr = l;
+    else
+        lr = l - limit;
+    end
+    i = 1;
+    while binindices(i) < lr
+        if 2^i <= limit
+            binindices = [binindices, 2^i];
+        else
+            binindices = [binindices, binindices(i) + limit];
+        end
+        i = i + 1;
+    end
+    
+    if binindices(i) < l
+        binindices(i) = l;
+    end
+
+    fs = [f(1), f(2), arrayfun(@(i) mean(f(binindices(i)+1:binindices(i+1))), 2:length(binindices)-1)];
+    ps = [p(1), p(2), arrayfun(@(i) mean(p(binindices(i)+1:binindices(i+1))), 2:length(binindices)-1)];
+end
 %%
 xvalues = 1:80;
 timeticks = {{' ', '15:05', ' ', '15:25', ' ', '15:45', ' ', '16:05', ' '},...
