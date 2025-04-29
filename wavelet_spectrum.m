@@ -137,7 +137,7 @@ function [E_f_T_m, E_f_w_m, frequencies, cospectrum_m, cospectrum_freq] = get_po
         for di = 1:3
             df = interpolate(tt{di, ti}, Cumseci{di, ti}, Cumsecn{di, ti});
             [df, ~] = processArray(df);
-            cwtstruct_temp = cwtft(df, 'wavelet', 'mexh', 'scales', scales);
+            cwtstruct_temp = cwtft(df, 'wavelet', 'morlex', 'scales', scales);
             W_ab_T = cwtstruct_temp.cfs';
             frequencies = cwtstruct_temp.frequencies';
             var_df = mean((df-mean(df)).^2);
@@ -145,7 +145,7 @@ function [E_f_T_m, E_f_w_m, frequencies, cospectrum_m, cospectrum_freq] = get_po
             
             df = interpolate(ww{di, ti}, Cumseci{di, ti}, Cumsecn{di, ti});
             [df, ~] = processArray(df);
-            cwtstruct_temp = cwtft(df, 'wavelet', 'mexh', 'scales', scales);
+            cwtstruct_temp = cwtft(df, 'wavelet', 'morlex', 'scales', scales);
             W_ab_w = cwtstruct_temp.cfs';
             var_df = mean((df-mean(df)).^2);
             E_f_w(:, di, ti) = squeeze(mean(abs(W_ab_w).^2, 1)) ./ (Cg.*fc.*var_df); % frequency-dependent wavelet energy
@@ -205,7 +205,7 @@ for hi=1:3
         if hi==1 && vi==2
             legend('Pre-FFP', 'FFP', 'Post-FFP', '-2/3', '-4/3', 'box', 'off', 'Orientation','horizontal')
         end
-        xlim([0.0001 2])
+        xlim([0.0001 1])
         ylim([10^(-4) 1])
 
         if vi>1
@@ -238,6 +238,8 @@ Cumsec = {CumSec3, CumSec10, CumSec20};
 towerstitle = {'Flux', 'North', 'West', 'East', 'South'};
 figure('Position', [200 100 1400 800])
 
+phases = cell(5, 3);
+periods = cell(5, 3);
 for ti=1:5
     for hi=1:3
         if ~(hi==2 && ti==5)
@@ -256,6 +258,8 @@ for ti=1:5
             [wcoh, wcs, period, coi] = wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
             [~, leny] = size(wcoh);
             wphase = rad2deg(angle(wcs));
+            phases{ti, hi} = wphase;
+            periods{ti, hi} = period;
             % wphase(wphase<0) = wphase(wphase<0)+360;
             [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
             pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
@@ -344,6 +348,39 @@ for ti=1:5
     end
 end
 
+%% plot cdf of phase angles
+colors = distinguishable_colors(14);
+towerstitle = {'Flux', 'North', 'West', 'East', 'South'};
+heights = {'19 m', '10 m', '3 m'};
+
+figure('Position', [200 200 900 600], 'DefaultAxesFontSize',20);
+pii = 1;
+for ti=1:5
+    for hi=1:3
+        if ~(hi==2 && ti==5)
+            % Example input: your array of phase angles
+            phase_angles = phases{ti,hi}(116,:); % replace this with your real data
+            
+            % Sort the phase angles
+            sorted_phases = sort(abs(phase_angles));
+            
+            % Compute the empirical CDF
+            N = length(sorted_phases);
+            cdf = (1:N)'/N;
+            
+            % Plot the CDF
+            plot(sorted_phases, cdf, 'LineWidth', 2, 'Color',colors(pii, :),'DisplayName',[towerstitle{ti}, ' @ ', heights{hi}]);
+            hold on
+            pii = pii + 1;
+        end
+    end
+end
+xlabel('Absolute Phase Angle (degrees)');
+ylabel('Cumulative Probability');
+title('Cumulative Distribution Function of Phase Angles');
+legend('Location','best');
+grid on;
+            
 
 %% plot wcoherence separately
 tt = {tt3, tt10, tt20};
