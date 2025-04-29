@@ -252,31 +252,52 @@ for ti=1:5
                 processArray(interpolate(tt{hi}{2,ti}, Cumsec{hi}{2, ti}, CumSec_n{2, ti}));...
                 processArray(interpolate(tt{hi}{3,ti}, Cumsec{hi}{3, ti}, CumSec_n{3, ti}))];
             [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2);
-            % wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
+            % wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.8);
             
             % plot phase
-            [wcoh, wcs, period, coi] = wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
+            [wcoh, wcs, period, coi] = wcoherence(filteredData1, filteredData2,seconds(0.1));
             [~, leny] = size(wcoh);
             wphase = rad2deg(angle(wcs));
             phases{ti, hi} = wphase;
             periods{ti, hi} = period;
             % wphase(wphase<0) = wphase(wphase<0)+360;
             [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
+
+            wphase(period>coi)=nan;
             pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
-            colormap(hsv)
-            colorbar 
+            % wcoh(period>coi)=nan;
+            % pcolor(X,log2(Y), wcoh, 'EdgeColor','none' )
+            % clim([0 1]);      % Set color axis to match temperature change
+            hold on
+
+            % create colormap for phase angles
+            % colormap(cat(1,colormap("parula"),flipud(colormap("parula"))))
+            hexColors = {'#a6cee3','#1f78b4','#1f78b4','#b2df8a','#b2df8a','#33a02c','#33a02c','#a6cee3'};
+            rgbColors = zeros(numel(hexColors), 3);
+            % Convert each hex color to RGB triplet
+            for i = 1:numel(hexColors)
+                hex = hexColors{i};
+                rgb = sscanf(hex(2:end), '%2x%2x%2x', [1 3]) / 255;
+                rgbColors(i, :) = rgb;
+            end
+            colormap(rgbColors);
             clim([-180 180]);      % Set color axis to match temperature change
+            
+            colorbar 
             hold on
             plot(0.1*(1:leny), log2(seconds(coi)), 'w--', 'LineWidth',3)
 
+
             hold on
-            xline(30*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
+            yline(log2(seconds(period(116))), 'Color','k','LineWidth',2,'LineStyle','--')
+            hold on
+            xline(30*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
             hold on
             if ti==2 || ti==3 || ti==5
-                xline((30+20)*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
+                xline((30+20)*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
                 hold on
             elseif ti==1 || ti==4
-                xline((30+15)*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
+                xline((30+15)*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
                 hold on
             end
             if ti==4 && hi==2
@@ -348,6 +369,7 @@ for ti=1:5
     end
 end
 
+
 %% plot cdf of phase angles
 colors = distinguishable_colors(14);
 towerstitle = {'Flux', 'North', 'West', 'East', 'South'};
@@ -399,16 +421,18 @@ for ti=1%:5
                 processArray(interpolate(tt{hi}{2,ti}, Cumsec{hi}{2, ti}, CumSec_n{2, ti}));...
                 processArray(interpolate(tt{hi}{3,ti}, Cumsec{hi}{3, ti}, CumSec_n{3, ti}))];
             [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2);
-            [wcoh, wcs, period, coi] = wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
-            [~, leny] = size(wcoh);
-            wphase = rad2deg(angle(wcs));
-            [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
-            pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
-            colormap(hsv)
-            colorbar 
-            clim([-180 180]);      % Set color axis to match temperature change
-            hold on
-            plot(0.1*(1:leny), log2(seconds(coi)), 'w--', 'LineWidth',3)
+            wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
+            
+            % [wcoh, wcs, period, coi] = wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.6);
+            % [~, leny] = size(wcoh);
+            % wphase = rad2deg(angle(wcs));
+            % [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
+            % pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
+            % colormap(hsv)
+            % colorbar 
+            % clim([-180 180]);      % Set color axis to match temperature change
+            % hold on
+            % plot(0.1*(1:leny), log2(seconds(coi)), 'w--', 'LineWidth',3)
             
             hold on
             xline(30*60-1, 'Color','k','LineWidth',3,'LineStyle','-.')
