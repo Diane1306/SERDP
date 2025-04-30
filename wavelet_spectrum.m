@@ -240,6 +240,7 @@ figure('Position', [200 100 1400 800])
 
 phases = cell(5, 3);
 periods = cell(5, 3);
+cois = cell(5, 3);
 for ti=1:5
     for hi=1:3
         if ~(hi==2 && ti==5)
@@ -260,6 +261,7 @@ for ti=1:5
             wphase = rad2deg(angle(wcs));
             phases{ti, hi} = wphase;
             periods{ti, hi} = period;
+            cois{ti, hi} = coi;
             % wphase(wphase<0) = wphase(wphase<0)+360;
             [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
 
@@ -381,22 +383,27 @@ for ti=1:5
     for hi=1:3
         if ~(hi==2 && ti==5)
             % Example input: your array of phase angles
+            phases{ti,hi}(periods{ti, hi}>cois{ti,hi})=nan;
             phase_angles = phases{ti,hi}(116,:); % replace this with your real data
             
             % Sort the phase angles
             sorted_phases = sort(abs(phase_angles));
             
             % Compute the empirical CDF
-            N = length(sorted_phases);
+            N = sum(~isnan(sorted_phases));
             cdf = (1:N)'/N;
             
             % Plot the CDF
-            plot(sorted_phases, cdf, 'LineWidth', 2, 'Color',colors(pii, :),'DisplayName',[towerstitle{ti}, ' @ ', heights{hi}]);
+            plot(sorted_phases(~isnan(sorted_phases)), cdf, 'LineWidth', 4, 'Color',colors(pii, :),'DisplayName',[towerstitle{ti}, ' @ ', heights{hi}]);
             hold on
             pii = pii + 1;
         end
     end
 end
+xline(45, 'm--', 'LineWidth', 1, 'HandleVisibility','off')
+hold on
+xline(135, 'm--', 'LineWidth', 1, 'HandleVisibility','off')
+hold on
 xlabel('Absolute Phase Angle (degrees)');
 ylabel('Cumulative Probability');
 title('Cumulative Distribution Function of Phase Angles');
