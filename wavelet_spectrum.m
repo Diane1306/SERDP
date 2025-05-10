@@ -230,7 +230,6 @@ for hi=1:3
 
     end
 end
-
 %%
 tt = {tt3, tt10, tt20};
 ww = {ww3, ww10, ww20};
@@ -265,13 +264,15 @@ for ti=1:5
             % wphase(wphase<0) = wphase(wphase<0)+360;
             [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
 
-            wphase(period>coi)=nan;
-            pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
+
             % wcoh(period>coi)=nan;
             % pcolor(X,log2(Y), wcoh, 'EdgeColor','none' )
             % clim([0 1]);      % Set color axis to match temperature change
-            hold on
+            % hold on
 
+            wphase(period>coi)=nan;
+            pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
+            
             % create colormap for phase angles
             % colormap(cat(1,colormap("parula"),flipud(colormap("parula"))))
             hexColors = {'#a6cee3','#1f78b4','#1f78b4','#b2df8a','#b2df8a','#33a02c','#33a02c','#a6cee3'};
@@ -366,6 +367,10 @@ for ti=1:5
             
             if hi==3
                 text(xL(2)*1.008, yL(2)/2, towerstitle{ti},'HorizontalAlignment','left','VerticalAlignment','middle', "FontSize",22,"FontWeight","bold")
+            end
+            if hi==1 && ti==1
+                % text(xL(1), yL(2), "(a)",'HorizontalAlignment','right','VerticalAlignment','bottom', "FontSize",22,"FontWeight","bold")
+                text(xL(1), yL(2), "(b)",'HorizontalAlignment','right','VerticalAlignment','bottom', "FontSize",22,"FontWeight","bold")
             end
         end
     end
