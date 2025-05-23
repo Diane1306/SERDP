@@ -254,37 +254,38 @@ for ti=1:5
             [filteredData1, filteredData2, commonIndices] = fillAndFilterDataTwoArrays(data1, data2);
             % wcoherence(filteredData1, filteredData2,seconds(0.1),PhaseDisplayThreshold=0.8);
             
-            % plot phase
             [wcoh, wcs, period, coi] = wcoherence(filteredData1, filteredData2,seconds(0.1));
             [~, leny] = size(wcoh);
+            [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
+            
             wphase = rad2deg(angle(wcs));
             phases{ti, hi} = wphase;
             periods{ti, hi} = period;
             cois{ti, hi} = coi;
-            % wphase(wphase<0) = wphase(wphase<0)+360;
-            [X, Y] = meshgrid(0.1*(1:leny), seconds(period));
+            % % wphase(wphase<0) = wphase(wphase<0)+360;
+            
+            % plot coherence
+            wcoh(period>coi)=nan;
+            pcolor(X,log2(Y), wcoh, 'EdgeColor','none' )
+            clim([0 1]);      % Set color axis to match temperature change
+            hold on
 
-
-            % wcoh(period>coi)=nan;
-            % pcolor(X,log2(Y), wcoh, 'EdgeColor','none' )
-            % clim([0 1]);      % Set color axis to match temperature change
-            % hold on
-
-            wphase(period>coi)=nan;
-            pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
+            % % plot phase
+            % wphase(period>coi)=nan;
+            % pcolor(X,log2(Y), wphase, 'EdgeColor','none' )
             
             % create colormap for phase angles
             % colormap(cat(1,colormap("parula"),flipud(colormap("parula"))))
-            hexColors = {'#a6cee3','#1f78b4','#1f78b4','#b2df8a','#b2df8a','#33a02c','#33a02c','#a6cee3'};
-            rgbColors = zeros(numel(hexColors), 3);
-            % Convert each hex color to RGB triplet
-            for i = 1:numel(hexColors)
-                hex = hexColors{i};
-                rgb = sscanf(hex(2:end), '%2x%2x%2x', [1 3]) / 255;
-                rgbColors(i, :) = rgb;
-            end
-            colormap(rgbColors);
-            clim([-180 180]);      % Set color axis to match temperature change
+            % hexColors = {'#a6cee3','#1f78b4','#1f78b4','#b2df8a','#b2df8a','#33a02c','#33a02c','#a6cee3'};
+            % rgbColors = zeros(numel(hexColors), 3);
+            % % Convert each hex color to RGB triplet
+            % for i = 1:numel(hexColors)
+            %     hex = hexColors{i};
+            %     rgb = sscanf(hex(2:end), '%2x%2x%2x', [1 3]) / 255;
+            %     rgbColors(i, :) = rgb;
+            % end
+            % colormap(rgbColors);
+            % clim([-180 180]);      % Set color axis to match temperature change
             
             colorbar 
             hold on
@@ -292,8 +293,8 @@ for ti=1:5
 
 
             hold on
-            yline(log2(seconds(period(116))), 'Color','k','LineWidth',2,'LineStyle','--')
-            hold on
+            % yline(log2(seconds(period(116))), 'Color','k','LineWidth',2,'LineStyle','--')
+            % hold on
             xline(30*60-1, 'Color','r','LineWidth',3,'LineStyle','-.')
             hold on
             if ti==2 || ti==3 || ti==5
@@ -369,8 +370,8 @@ for ti=1:5
                 text(xL(2)*1.008, yL(2)/2, towerstitle{ti},'HorizontalAlignment','left','VerticalAlignment','middle', "FontSize",22,"FontWeight","bold")
             end
             if hi==1 && ti==1
-                % text(xL(1), yL(2), "(a)",'HorizontalAlignment','right','VerticalAlignment','bottom', "FontSize",22,"FontWeight","bold")
-                text(xL(1), yL(2), "(b)",'HorizontalAlignment','right','VerticalAlignment','bottom', "FontSize",22,"FontWeight","bold")
+                text(xL(1), yL(2), "(a)",'HorizontalAlignment','right','VerticalAlignment','bottom', "FontSize",26,"FontWeight","bold")
+                % text(xL(1), yL(2), "(b)",'HorizontalAlignment','right','VerticalAlignment','bottom', "FontSize",26,"FontWeight","bold")
             end
         end
     end
