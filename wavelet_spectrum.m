@@ -45,7 +45,7 @@ bwr = [linspace(0, 1, 128)', linspace(0, 1, 128)', ones(128, 1);  % Blue to Whit
 
 %%
 function [cospectrum, freq] = cross_wavelet(a, b, scales)
-    Cg = 0.776; % Torrence et al., 1998
+    Cg = pi^(-1/4); % 0.776; % Torrence et al., 1998
     cwtstruct_temp = cwtft(a, 'wavelet', 'morl', 'scales', scales);
     Wa = cwtstruct_temp.cfs;
     cwtstruct_temp = cwtft(b, 'wavelet', 'morl', 'scales', scales);
@@ -129,23 +129,24 @@ function data_interpolated = interpolate(data, timei, timen)
 end
 
 function [E_f_T_m, E_f_w_m, frequencies, cospectrum_m, cospectrum_freq] = get_power(ww, tt, lentowers, scales, Cumseci, Cumsecn)
-    Cg = pi;
-    fc = 0.251;
+    Cg = pi^(-1/4); % 0.776; % Torrence et al., 1998 for morlet wavelet
+    % fc = 0.251;
     E_f_T = nan(length(scales), 3, lentowers);
     E_f_w = nan(length(scales), 3, lentowers);
     for ti=1:lentowers
         for di = 1:3
             df = interpolate(tt{di, ti}, Cumseci{di, ti}, Cumsecn{di, ti});
             [df, ~] = processArray(df);
-            cwtstruct_temp = cwtft(df, 'wavelet', 'morlex', 'scales', scales);
+            cwtstruct_temp = cwtft(df, 'wavelet', 'morl', 'scales', scales);
             W_ab_T = cwtstruct_temp.cfs';
             frequencies = cwtstruct_temp.frequencies';
+            fc = frequencies(1).*scales(1);
             var_df = mean((df-mean(df)).^2);
             E_f_T(:, di, ti) = squeeze(mean(abs(W_ab_T).^2, 1)) ./ (Cg.*fc.*var_df); % frequency-dependent wavelet energy 
             
             df = interpolate(ww{di, ti}, Cumseci{di, ti}, Cumsecn{di, ti});
             [df, ~] = processArray(df);
-            cwtstruct_temp = cwtft(df, 'wavelet', 'morlex', 'scales', scales);
+            cwtstruct_temp = cwtft(df, 'wavelet', 'morl', 'scales', scales);
             W_ab_w = cwtstruct_temp.cfs';
             var_df = mean((df-mean(df)).^2);
             E_f_w(:, di, ti) = squeeze(mean(abs(W_ab_w).^2, 1)) ./ (Cg.*fc.*var_df); % frequency-dependent wavelet energy
@@ -175,7 +176,7 @@ set(0, 'DefaultAxesFontWeight', 'bold');
 set(0, 'DefaultAxesFontSize', 20);
 
 vars = {E_f_T_m, E_f_w_m, cospectrum_m};
-ylabels = {"f\timesE_{T'}(f) / T'^2 ", "f\timesE_{w'}(f) / w'^2 ", "f\timesCO_{w'T'}(f) / w'T' "};
+ylabels = {"$\mathbf{f \times E_{T}(f) / \overline{T'^2} }$", "$\mathbf{f \times E_{w}(f) / \overline{w'^2} }$", "$\mathbf{f \times CO_{wT}(f) / \overline{w'T'} }$"};
 heights = {'19 m', '10 m', '3 m'};
 colors = ['b', 'r', 'k'];
 figure('Position', [200 100 1200 800])
@@ -219,7 +220,7 @@ for hi=1:3
         end
 
         if hi==2
-            ylabel(ylabels{vi})
+            ylabel(ylabels{vi}, 'Interpreter','latex')
         end
 
         if vi==3
